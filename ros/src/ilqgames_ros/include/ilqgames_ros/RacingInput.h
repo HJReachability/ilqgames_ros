@@ -128,7 +128,8 @@ class RacingInput {
 
   // list of publishers for system states
   ros::Publisher Input_pub_;
-  ros::Subscriber Control_sub_;
+  ros::Subscriber control_sub_;
+  std::vector<ros::Subscriber> control_subs_;
   std::vector<ros::Subscriber> state_subs_;
 };
 

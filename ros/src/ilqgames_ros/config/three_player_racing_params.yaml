@@ -14,8 +14,8 @@ planner:
     min: 2.0
     max: 1.0
     p1Nom: 15.0
-    p2Nom: 10.0
-    p3Nom: 10.0
+    p2Nom: 15.0
+    p3Nom: 15.0
 
   weight:
     u:
@@ -28,8 +28,8 @@ planner:
       v:
         max: 1000.0
         p1NomVCost: 10.0
-        p2NomVCost: 1.0
-        p3NomVCost: 1.0
+        p2NomVCost: 10.0
+        p3NomVCost: 10.0
         min: 10.0
 
       lane:
@@ -46,15 +46,15 @@ planner:
         nom: 150.0
 
   init:
-    p1x: 2.5
+    p1x: 3.5
     p1y: -10.0
-    p1v: 10.0
-    p2x: -1.0
+    p1v: 1.0
+    p2x: 0.0
     p2y: -10.0
-    p2v: 2.0
-    p3x: 2.5
-    p3y: 10.0
-    p3v: 2.0
+    p2v: 1.0
+    p3x: 7.0
+    p3y: -10.0
+    p3v: 1.0
 
   control:
     p1Omega: 0
@@ -68,25 +68,27 @@ planner:
     half_width: 2.5
 
   track:
-    inner: 15.0
-    outer: 20.0
+    inner: 20.0
+    outer: 25.0
+    outermost: 30.0
     side: 25.0
-    Arcpts: 5
+    Arcpts: 15
   car:
     axle: 4.0
 
   frames:
-    fixed: "fixed_frame"
+    fixed: "/fixed_frame"
 
   viz:
-    traj: "moving_frame"
+    traj: "/viz/cars"
 
   topic:
     state:
       names: ["P1","P2","P3"]
+      tfs: ["P1tf","P2tf","P3tf"]
       inputs: "/new_inputs"
       control: "/new_control"
 
   replanning_interval: .25
-  control_interval: .005
-  sim_interval:  .001
+  control_interval: .005  #.005
+  sim_interval:  .001   #.001

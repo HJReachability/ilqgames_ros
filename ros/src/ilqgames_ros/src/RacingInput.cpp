@@ -74,7 +74,6 @@ bool RacingInput::Initialize(const ros::NodeHandle& n) {
     ROS_ERROR("%s: Failed to register callbacks.", name_.c_str());
     return false;
   }
-  std::cout << "loaded, registered, controller" << std::endl;
 
   // declare local dummy of system dynamics
   const std::shared_ptr<const ConcatenatedDynamicalSystem> dynamics(
@@ -83,11 +82,10 @@ bool RacingInput::Initialize(const ros::NodeHandle& n) {
            std::make_shared<SinglePlayerCar6D>(kInterAxleLength),
            std::make_shared<SinglePlayerCar6D>(kInterAxleLength)},
           kTimeStep));
-  std::cout << "test1 controller" << std::endl;
+
   // set last time to something reasonable
   t_last_ = ros::Time::now().toSec();
 
-  std::cout << "test2 controller" << std::endl;
 
   // node seem to crash here
   // declare input/Control vectors as NaNs
@@ -107,7 +105,6 @@ bool RacingInput::Initialize(const ros::NodeHandle& n) {
     x_received_.push_back(VectorXf::Constant(
         dynamics->SubsystemXDim(ii), std::numeric_limits<float>::quiet_NaN()));
   }
-  std::cout << "test3 controller" << std::endl;
 
   x_ = VectorXf::Constant(dynamics->XDim(),
                           std::numeric_limits<float>::quiet_NaN());
@@ -115,7 +112,6 @@ bool RacingInput::Initialize(const ros::NodeHandle& n) {
   x_ref_ = VectorXf::Constant(dynamics->XDim(),
                               std::numeric_limits<float>::quiet_NaN());
 
-  std::cout << "test4 controller" << std::endl;
 
   // Initialize P_mat_.
   P_mat_.resize(dynamics->NumPlayers());
@@ -124,7 +120,6 @@ bool RacingInput::Initialize(const ros::NodeHandle& n) {
   initialized_ = true;
   timer_.start();
 
-  std::cout << "u: done with initialization" << std::endl << std::flush;
   return true;
 }
 
@@ -151,8 +146,10 @@ bool RacingInput::RegisterCallbacks(const ros::NodeHandle& n) {
       Input_topic_.c_str(), 1, false);
 
   // subscribers
-  Control_sub_ = nl.subscribe(Control_topic_.c_str(), 1,
+
+   control_sub_= nl.subscribe("/new_control", 1,
                               &RacingInput::ControlCallback, this);
+
   // state subs, syntax changed to address node crashing error
   state_subs_.emplace_back(nl.subscribe("/ilqgame_planner/P1", 1,
                                         &RacingInput::P1StateCallback, this));
@@ -162,11 +159,6 @@ bool RacingInput::RegisterCallbacks(const ros::NodeHandle& n) {
 
   state_subs_.emplace_back(nl.subscribe("/ilqgame_planner/P3", 1,
                                         &RacingInput::P3StateCallback, this));
-
-  /* old syntax
-    state_subs_[1] = nl.subscribe(
-      state_topics_[1].c_str(), 1, &RacingInput::P2StateCallback, this);
-  */
 
   // setup timer to iterate every replanning_interval_
   timer_ = nl.createTimer(ros::Duration(control_interval_),
@@ -234,8 +226,7 @@ void RacingInput::TimerCallback(const ros::TimerEvent& e) {
 
 void RacingInput::ControlCallback(
     const ilqgames_msgs::ThreePlayerRacingControl::ConstPtr& msg) {
-  std::cout << "u: entering control callback" << std::endl;
-
+  std::cout<<"I got called Control!"<<std::endl;
   // finish input callback
   for (size_t jj = 0; jj < x_.size(); jj++) {
     x_ref_(jj) = msg->x_ref[jj];
@@ -253,8 +244,6 @@ void RacingInput::ControlCallback(
     alpha_[2](jj) = msg->alphaP3[jj];
   }
 
-  std::cout << "u: wut" << std::endl;
-
   // load u_ref values into local vars
   for (size_t jj = 0; jj < u_ref_[0].size(); jj++) {
     u_ref_[0](jj) = msg->u_refP1[jj];
@@ -266,7 +255,6 @@ void RacingInput::ControlCallback(
     u_ref_[2](jj) = msg->u_refP3[jj];
   }
 
-  std::cout << "u: wutwut" << std::endl;
 
   for (size_t jj = 0; jj < P_[0].rows(); jj++) {
     P_[0](jj, 0) = msg->PP1[jj];
@@ -278,8 +266,6 @@ void RacingInput::ControlCallback(
     P_[2](jj, 0) = msg->PP3[jj];
   }
 
-  std::cout << "u: wutwutwut" << std::endl;
-
   // reshape P_ matrices to be of proper
   // might be some type conversion issues here
   const Eigen::Map<MatrixXf> P1(P_[0].data(), u_ref_[0].size(), x_.size());
@@ -289,6 +275,15 @@ void RacingInput::ControlCallback(
   P_mat_[0] = P1;
   P_mat_[1] = P2;
   P_mat_[2] = P3;
+
+  std::cout<<"xref= "<<x_ref_[0]<<std::endl;
+  std::cout<<"alpha= "<<alpha_[0]<<std::endl;
+  std::cout<<"uref= "<<u_ref_[0]<<std::endl;
+
+  std::cout<<"PP1vec size= "<<P_[0].size()<<std::endl;
+  std::cout<<"PP1vec= "<<P_[0]<<std::endl;
+  std::cout<<"PP1 size= "<<P_mat_[0].size()<<std::endl;
+  std::cout<<"PP1= "<<P_mat_[0]<<std::endl;
 }
 
 void RacingInput::P1StateCallback(const ilqgames_msgs::State::ConstPtr& msg) {
@@ -296,6 +291,7 @@ void RacingInput::P1StateCallback(const ilqgames_msgs::State::ConstPtr& msg) {
   for (size_t jj = 0; jj < x_received_[0].size(); jj++) {
     x_received_[0](jj) = msg->x[jj];
   }
+  //std::cout<<"x_rec_P1 "<<x_received_[0]<<std::endl;
 }
 
 void RacingInput::P2StateCallback(const ilqgames_msgs::State::ConstPtr& msg) {
@@ -303,6 +299,7 @@ void RacingInput::P2StateCallback(const ilqgames_msgs::State::ConstPtr& msg) {
   for (size_t jj = 0; jj < x_received_[1].size(); jj++) {
     x_received_[1](jj) = msg->x[jj];
   }
+  //std::cout<<"x_rec_P2 "<<x_received_[1]<<std::endl;
 }
 
 void RacingInput::P3StateCallback(const ilqgames_msgs::State::ConstPtr& msg) {
@@ -310,18 +307,13 @@ void RacingInput::P3StateCallback(const ilqgames_msgs::State::ConstPtr& msg) {
   for (size_t jj = 0; jj < x_received_[2].size(); jj++) {
     x_received_[2](jj) = msg->x[jj];
   }
+  //std::cout<<"x_rec_P3 "<<x_received_[0]<<std::endl;
 }
 
 bool RacingInput::ReceivedAllMsgs() const {
-  std::cout << x_(0) << std::endl;
-  std::cout << x_ref_(0) << std::endl;
 
   if (x_.hasNaN()) return false;
   if (x_ref_.hasNaN()) return false;
-
-  std::cout << u_ref_[0] << std::endl;
-  std::cout << alpha_[0] << std::endl;
-  std::cout << P_mat_[0] << std::endl;
 
   for (size_t jj = 0; jj < u_.size(); jj++) {
     //    if (u_[jj].hasNaN()) return false;

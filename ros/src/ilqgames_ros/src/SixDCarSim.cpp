@@ -48,7 +48,9 @@
 
 #include <ilqgames_msgs/State.h>
 #include <ilqgames_msgs/ThreePlayerRacingInput.h>
+#include <geometry_msgs/TransformStamped.h>
 #include <ros/ros.h>
+#include <tf2_ros/transform_broadcaster.h>
 
 #include <glog/logging.h>
 #include <memory>
@@ -70,25 +72,21 @@ bool SixDCarSim::Initialize(const ros::NodeHandle& n) {
     ROS_ERROR("%s: Failed to register callbacks.", name_.c_str());
     return false;
   }
-  std::cout << "loaded, registered callbacks sim" << std::endl;
 
   // set last time to something reasonable
   t_last_ = ros::Time::now().toSec();
 
-  std::cout << "test1 sim" << std::endl;
 
   // declare pointer to problem dynamics
   const ConcatenatedDynamicalSystem& dynamics =
       *static_cast<const ConcatenatedDynamicalSystem*>(
           &problem_->Solver().Dynamics());
 
-  std::cout << "test2 sim" << std::endl;
   // load initial state into x_
   for (PlayerIndex ii = 0; ii < dynamics.NumPlayers(); ii++) {
     x_ = problem_->InitialState();
   }
 
-  std::cout << x_.transpose() << std::endl;
 
   // send initial state message
   size_t cumulative_xdim = 0;
@@ -102,7 +100,6 @@ bool SixDCarSim::Initialize(const ros::NodeHandle& n) {
     cumulative_xdim += dynamics.SubsystemXDim(ii);
   }
 
-  std::cout << "test3 sim" << std::endl;
   // node seems to crash here
   // declare input vectors as NaNs
 
@@ -112,11 +109,9 @@ bool SixDCarSim::Initialize(const ros::NodeHandle& n) {
   // u_[ii] = VectorXf::Constant(dynamics.UDim(ii),
   // std::numeric_limits<float>::quiet_NaN());
 
-  std::cout << "test4 sim" << std::endl;
   // signal completion of intialization
   initialized_ = true;
   timer_.start();
-  std::cout << "initialized sim" << std::endl;
   return true;
 }
 
@@ -124,7 +119,9 @@ bool SixDCarSim::LoadParameters(const ros::NodeHandle& n) {
   ros::NodeHandle nl(n);
 
   // read relevant rostopic names from from ros param server
+  if (!nl.getParam("/planner/frames/fixed", fixed_frame_)) return false;
   if (!nl.getParam("/planner/topic/state/names", state_topics_)) return false;
+  if (!nl.getParam("/planner/topic/state/tfs", player_frames_)) return false;
   if (!nl.getParam("/planner/topic/state/inputs", input_topic_)) return false;
   CHECK_EQ(state_topics_.size(), problem_->Solver().Dynamics().NumPlayers());
   if (!nl.getParam("/planner/sim_interval", sim_interval_)) return false;
@@ -144,7 +141,8 @@ bool SixDCarSim::RegisterCallbacks(const ros::NodeHandle& n) {
 
   state_publishers_.emplace_back(
       nl.advertise<ilqgames_msgs::State>("/ilqgame_planner/P3", 1, false));
-
+  
+  
   // subscriber
   Input_sub_ =
       nl.subscribe(input_topic_.c_str(), 1, &SixDCarSim::InputCallback, this);
@@ -173,6 +171,27 @@ void SixDCarSim::TimerCallback(const ros::TimerEvent& e) {
   // update state using simple xdot*dt calc.
   x_ += dynamics.Evaluate(t_, x_, u_) * (t_ - t_last_);
 
+
+  const std::vector<float> xPos = problem_->Xs(x_);
+  const std::vector<float> yPos = problem_->Ys(x_);
+
+
+  for (size_t ii = 0; ii < state_topics_.size(); ii++) {
+    geometry_msgs::TransformStamped tf;
+    tf.header.frame_id = fixed_frame_;
+    tf.header.stamp = ros::Time::now();
+    tf.child_frame_id = player_frames_[ii];
+
+    tf.transform.translation.x = xPos[ii];
+    tf.transform.translation.y = yPos[ii];
+    tf.transform.translation.z = 0;
+    tf.transform.rotation.x = 0;
+    tf.transform.rotation.y = 0;
+    tf.transform.rotation.z = 0;
+    tf.transform.rotation.w = 1;
+    
+    tf_broadcaster_.sendTransform(tf);
+  }
   // keep track of proper indeces
   size_t cumulative_xdim = 0;
   // load state msgs

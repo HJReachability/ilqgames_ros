@@ -49,6 +49,7 @@
 #include <ros/ros.h>
 #include <ilqgames_msgs/ThreePlayerRacingInput.h>
 #include <ilqgames_msgs/State.h>
+#include <tf2_ros/transform_broadcaster.h>
 
 #include <glog/logging.h>
 #include <vector>
@@ -91,7 +92,9 @@ class SixDCarSim {
     std::string name_;
 
     //vars relating to publisher/sub topics
+    std::string fixed_frame_;
     std::vector<std::string> state_topics_;
+    std::vector<std::string> player_frames_;
     std::string input_topic_;
 
     bool initialized_;
@@ -108,9 +111,13 @@ class SixDCarSim {
     //overall system state
     VectorXf x_;
 
+
     //list of publishers for system states
     std::vector<ros::Publisher> state_publishers_;
+   
     ros::Subscriber Input_sub_;
+    tf2_ros::TransformBroadcaster tf_broadcaster_;
+
 };
 
 }  // namespace ilqgames_ros

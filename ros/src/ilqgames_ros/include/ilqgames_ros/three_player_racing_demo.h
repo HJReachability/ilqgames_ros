@@ -121,7 +121,8 @@ class ThreePlayerRacingDemo : public TopDownRenderableProblem {
   float kP3OmegaIdx, kP3JerkIdx;
 
   //track params
-  float turn_rad_inner, turn_rad_outer, side_len, kNumPointsInArc;
+  float turn_rad_inner, turn_rad_outer, turn_rad_outermost;
+  float side_len, kNumPointsInArc;
 
 
   // Indices for x/y/heading.

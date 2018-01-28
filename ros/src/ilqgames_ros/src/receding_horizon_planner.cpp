@@ -118,7 +118,7 @@ bool RecedingHorizonPlanner::RegisterCallbacks(const ros::NodeHandle& n) {
 
   // publish new control parameters to the input calculator
   control_pub_ = nl.advertise<ilqgames_msgs::ThreePlayerRacingControl>(
-      Control_topic_.c_str(), 1, false);
+      "/new_control", 1, false);
 
   // Subscribers.
   for (size_t ii = 0; ii < state_topics_.size(); ii++) {
@@ -143,7 +143,6 @@ bool RecedingHorizonPlanner::RegisterCallbacks(const ros::NodeHandle& n) {
 }
 
 void RecedingHorizonPlanner::TimerCallback(const ros::TimerEvent& e) {
-  std::cout << "I got called timer" << std::endl;
   if (!initialized_) {
     ROS_WARN_THROTTLE(1.0, "%s: Not initialized. Ignoring timer callback.",
                       name_.c_str());
@@ -184,7 +183,6 @@ bool RecedingHorizonPlanner::ReceivedAllStateUpdates() const {
 }
 
 void RecedingHorizonPlanner::Plan() {
-  std::cout << "I got called plan" << std::endl;
   const double t = ros::Time::now().toSec();
 
   // Parse state information into big vector.
@@ -236,7 +234,8 @@ void RecedingHorizonPlanner::Publish() {
       *static_cast<const ConcatenatedDynamicalSystem*>(
           &problem_->Solver().Dynamics());
 
-  std::cout << "I got called vis" << std::endl;
+  //std::cout << solution_splicer_.get() << std::endl;
+
   if (!solution_splicer_.get()) return;
   // Exit early if we don't have any subscribers.
   // if (traj_viz_pub_.getNumSubscribers() == 0) {
@@ -250,7 +249,6 @@ void RecedingHorizonPlanner::Publish() {
   const auto& traj = solution_splicer_->CurrentOperatingPoint();
   const auto& strat = solution_splicer_->CurrentStrategies();
 
-  std::cout << "wuut" << std::endl;
 
   // Vizualize everybody's trajectory.
   std::vector<visualization_msgs::Marker> spheres(state_topics_.size());
@@ -274,9 +272,9 @@ void RecedingHorizonPlanner::Publish() {
     s.id = ii;
     s.type = visualization_msgs::Marker::SPHERE_LIST;
     s.action = visualization_msgs::Marker::ADD;
-    s.scale.x = 1.0;
-    s.scale.y = 1.0;
-    s.scale.z = 1.0;
+    s.scale.x = .5;
+    s.scale.y = .5;
+    s.scale.z = .5;
     s.color = c;
 
     l.header.frame_id = fixed_frame_.c_str();
@@ -291,8 +289,6 @@ void RecedingHorizonPlanner::Publish() {
     l.color = c;
   }
 
-  std::cout << "wutwut" << std::endl;
-
   for (size_t kk = 0; kk < traj.xs.size(); kk++) {
     // Extract position for each player.
     const std::vector<float> xs = problem_->Xs(traj.xs[kk]);
@@ -303,6 +299,7 @@ void RecedingHorizonPlanner::Publish() {
       P_[ii] = strat[ii].Ps[0];
       alpha_[ii] = strat[ii].alphas[0];
       CHECK_EQ(alpha_[ii].size(), dynamics.UDim(ii));
+      std::cout<<"P1 size, planner= "<<P1.size()<<std::endl;
     }
 
     CHECK_EQ(xs.size(), spheres.size());
@@ -316,7 +313,6 @@ void RecedingHorizonPlanner::Publish() {
       lines[ii].points.push_back(p);
     }
   }
-  std::cout << "yo" << std::endl;
 
   // load ref variables for control message
   x_ref = traj.xs[0];
@@ -326,6 +322,8 @@ void RecedingHorizonPlanner::Publish() {
 
   // load control message
   // load P matrices
+  //should this be size udim by xdim?
+  
   const Eigen::Map<MatrixXf> P1(P_[0].data(),
                                 dynamics.XDim() * dynamics.TotalUDim(), 1);
   for (size_t jj = 0; jj < dynamics.XDim() * dynamics.TotalUDim(); jj++) {
@@ -342,13 +340,11 @@ void RecedingHorizonPlanner::Publish() {
     Control_msg.PP3.push_back(P3(jj, 0));
   }
 
-  std::cout << "yoyo" << std::endl;
 
   // load alphas and x_ref
   for (size_t jj = 0; jj < dynamics.XDim(); jj++) {
     Control_msg.x_ref.push_back(x_ref(jj));
   }
-  std::cout << "yoyoyo" << std::endl;
 
   // load u_ref values
   for (size_t jj = 0; jj < dynamics.UDim(0); jj++) {
@@ -364,15 +360,12 @@ void RecedingHorizonPlanner::Publish() {
     Control_msg.u_refP3.push_back(u_refP3(jj));
   }
 
-  std::cout << "yoyoyoyo" << std::endl;
-
   // Publish!
   for (size_t ii = 0; ii < spheres.size(); ii++) {
     traj_viz_pub_.publish(spheres[ii]);
     traj_viz_pub_.publish(lines[ii]);
   }
 
-  std::cout << "about to pub control" << std::endl;
   control_pub_.publish(Control_msg);
 }
 

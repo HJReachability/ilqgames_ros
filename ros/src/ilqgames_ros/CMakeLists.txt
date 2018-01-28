@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   visualization_msgs
   geometry_msgs
+  tf2_ros
   std_msgs
   ilqgames_msgs
 )
@@ -25,6 +26,7 @@ catkin_package(
     visualization_msgs
     geometry_msgs
     std_msgs
+    tf2_ros
     ilqgames_msgs
   DEPENDS
     EIGEN3

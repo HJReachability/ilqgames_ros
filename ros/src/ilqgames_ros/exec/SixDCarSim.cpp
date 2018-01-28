@@ -44,7 +44,7 @@
 
 int main(int argc, char** argv) {
   const std::string log_file =
-      ILQGAMES_ROS_LOG_DIR + std::string("/state writer.log");
+      ILQGAMES_ROS_LOG_DIR + std::string("/two_player_vicon.log");
   google::SetLogDestination(0, log_file.c_str());
   google::InitGoogleLogging(argv[0]);
 
