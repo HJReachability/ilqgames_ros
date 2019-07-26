@@ -1,0 +1,56 @@
+*.aux
+*.blg
+*.log
+*.gz
+~*
+*.mat
+
+*.asv
+*.m~
+
+# Emacs stuff.
+.clang_complete
+cscope*
+
+# ROS stuff.
+*.catkin_workspace
+
+ros/build
+ros/devel
+ros/src/CMakeLists.txt
+ros/src/ilqgames_ros
+ros/src/eyes_closed_invariance
+
+external/build_isolated
+external/devel_isolated
+external/install_isolated
+
+# Deploy stuff.
+deploy_key
+deploy_key.pub
+
+# Compiled python files.
+*.pyc
+
+# Swap files
+*.swp
+*.swo
+*~
+
+# Glog log files
+*.log*
+*.INFO
+
+# OSX dir files
+.DS_store
+
+# Compiled object files
+*.slo
+*.lo
+*.o
+
+# Compiled dynamic and static libraries
+*.so
+*.dylib
+*.la
+*.a
