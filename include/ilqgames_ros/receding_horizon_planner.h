@@ -56,12 +56,15 @@
 namespace ilqgames_ros {
 
 using ilqgames::Problem;
+using Eigen::VectorXf;
 
 class RecedingHorizonPlanner {
  public:
   ~RecedingHorizonPlanner() {}
   RecedingHorizonPlanner(const std::shared_ptr<Problem>& problem)
-      : problem_(problem), initialized_(false) {}
+      : problem_(problem), initialized_(false) {
+    CHECK_NOTNULL(problem.get());
+  }
 
   // Initialize this class with all parameters and callbacks.
   bool Initialize(const ros::NodeHandle& n);
@@ -76,8 +79,11 @@ class RecedingHorizonPlanner {
 
   // Callback for processing the given player's state msg.
   // One callback for each type of state msg we might have.
-  void StateCallback(const darpa_msgs::EgoState::ConstPtr& msg);
-  void StateCallback(const darpa_msgs::OtherState::ConstPtr& msg);
+  void StateCallback(const darpa_msgs::EgoState::ConstPtr& msg, size_t idx);
+  void StateCallback(const darpa_msgs::OtherState::ConstPtr& msg, size_t idx);
+
+  // Check to see if we've received state updates for all vehicles.
+  bool ReceivedAllStateUpdates() const;
 
   // Planning problem.
   std::shared_ptr<Problem> problem_;
@@ -93,6 +99,9 @@ class RecedingHorizonPlanner {
   std::string traj_topic_;
   std::vector<std::string> state_topics_;
   std::vector<std::string> state_types_;
+
+  // List of most recent states for each system.
+  std::vector<VectorXf> current_states_;
 
   // Naming and initialization.
   std::string name_;

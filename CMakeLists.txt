@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   visualization_msgs
   geometry_msgs
   std_msgs
+  darpa_msgs
 )
 
 catkin_package(
@@ -23,6 +24,7 @@ catkin_package(
     visualization_msgs
     geometry_msgs
     std_msgs
+    darpa_msgs
   DEPENDS
     EIGEN3
     ilqgames
@@ -37,13 +39,13 @@ endif()
 
 add_definitions(-DPRECOMPUTATION_DIR="${CMAKE_SOURCE_DIR}/fastrack/precomputation/")
 
-set(ILQGAMES_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/../../external/install_isolated/include/)
+set(ILQGAMES_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/../../external/install_isolated/include/ilqgames)
 
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIR}
-  ${ILQGAMES_INCLUDE_DIR}
+  ${EIGEN3_INCLUDE_DIRS}
+  ${ILQGAMES_INCLUDE_DIRS}
 )
 
 link_directories(
@@ -60,7 +62,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   ${EIGEN3_LIBRARIES}
-  ilqgames
+  ${ILQGAMES_LIBRARIES}
 )
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
@@ -76,7 +78,7 @@ foreach(executable ${${PROJECT_NAME}_execs})
     ${PROJECT_NAME}
     ${catkin_LIBRARIES}
     ${EIGEN3_LIBRARIES}
-    ilqgames
+    ${ILQGAMES_LIBRARIES}
     )
 endforeach()
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")

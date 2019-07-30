@@ -44,6 +44,7 @@
 #include <ilqgames_ros/receding_horizon_planner.h>
 
 #include <darpa_msgs/EgoState.h>
+#include <darpa_msgs/EgoTrajectory.h>
 #include <darpa_msgs/OtherState.h>
 
 #include <glog/logging.h>
@@ -53,7 +54,7 @@
 
 namespace ilqgames_ros {
 
-bool Initialize(const ros::NodeHandle& n) {
+bool RecedingHorizonPlanner::Initialize(const ros::NodeHandle& n) {
   name_ = ros::names::append(n.getNamespace(), "receding_horizon_planner");
 
   // Load parameters.
@@ -68,11 +69,23 @@ bool Initialize(const ros::NodeHandle& n) {
     return false;
   }
 
+  // Set up 'current_states_' to be a bunch of NaNs.
+  for (size_t ii = 0; ii < state_types_.size(); ii++) {
+    if (state_types_[ii] == "EgoState") {
+      current_states_.push_back(
+          VectorXf::Constant(4, std::numeric_limits<float>::quiet_NaN()));
+    } else {
+      CHECK_EQ(state_types_[ii], "OtherState");
+      current_states_.push_back(
+          VectorXf::Constant(3, std::numeric_limits<float>::quiet_NaN()));
+    }
+  }
+
   initialized_ = true;
   return true;
 }
 
-bool LoadParameters(const ros::NodeHandle& n) {
+bool RecedingHorizonPlanner::LoadParameters(const ros::NodeHandle& n) {
   ros::NodeHandle nl(n);
 
   // Topics.
@@ -82,6 +95,7 @@ bool LoadParameters(const ros::NodeHandle& n) {
 
   // State types (these will get parsed later).
   if (!nl.getParam("topic/state/types", state_types_)) return false;
+  CHECK_EQ(state_types_.size(), state_topics_.size());
 
   // Timer interval.
   if (!nl.getParam("replanning_interval", replanning_interval_)) return false;
@@ -89,28 +103,96 @@ bool LoadParameters(const ros::NodeHandle& n) {
   return true;
 }
 
-bool RegisterCallbacks(const ros::NodeHandle& n) {
+bool RecedingHorizonPlanner::RegisterCallbacks(const ros::NodeHandle& n) {
   ros::NodeHandle nl(n);
+
+  // Timer.
+  timer_ = nl.createTimer(ros::Duration(replanning_interval_),
+                          &RecedingHorizonPlanner::TimerCallback, this);
 
   // Publishers.
   traj_pub_ =
-      nl.advertise<fastrack_msgs::Trajectory>(traj_topic_.c_str(), 1, false);
+      nl.advertise<darpa_msgs::EgoTrajectory>(traj_topic_.c_str(), 1, false);
 
   // Subscribers.
-  replan_request_sub_ = nl.subscribe(replan_request_topic_.c_str(), 1,
-                                     &Replanner::ReplanRequestCallback, this);
+  for (size_t ii = 0; ii < state_topics_.size(); ii++) {
+    const auto& topic = state_topics_[ii];
+    const auto& type = state_types_[ii];
 
-  // Services.
-  ros::service::waitForService(replan_srv_name_);
-  replan_srv_ =
-      nl.serviceClient<fastrack_srvs::Replan>(replan_srv_name_.c_str(), true);
+    // Generate a lambda function for this callback, parsing the state type.
+    // NOTE: this could be implemented with templated lambdas but that's a
+    // relatively new feature, so we'll avoid using it in case we need to use an
+    // older compiler.
+    if (type == "EgoState") {
+      boost::function<void(const darpa_msgs::EgoState::ConstPtr&, size_t)>
+          callback =
+              [this](const darpa_msgs::EgoState::ConstPtr& msg, size_t idx) {
+                StateCallback(msg, idx);
+              };  // callback
+
+      // Create a new subscriber with this callback.
+      state_subs_.emplace_back(nl.subscribe<darpa_msgs::EgoState>(
+          topic, 1, boost::bind(callback, _1, ii)));
+    } else {
+      CHECK_EQ(type, "OtherState");
+
+      boost::function<void(const darpa_msgs::OtherState::ConstPtr&, size_t)>
+          callback =
+              [this](const darpa_msgs::OtherState::ConstPtr& msg, size_t idx) {
+                StateCallback(msg, idx);
+              };  // callback
+
+      state_subs_.emplace_back(nl.subscribe<darpa_msgs::OtherState>(
+          topic, 1, boost::bind(callback, _1, ii)));
+    }
+  }
 
   return true;
 }
 
-void TimerCallback(const ros::TimerEvent& e);
+void RecedingHorizonPlanner::TimerCallback(const ros::TimerEvent& e) {
+  if (!initialized_) {
+    ROS_WARN_THROTTLE(1.0, "%s: Not initialized. Ignoring timer callback.",
+                      name_.c_str());
+    return;
+  }
 
-void StateCallback(const darpa_msgs::EgoState::ConstPtr& msg);
-void StateCallback(const darpa_msgs::OtherState::ConstPtr& msg);
+  if (!ReceivedAllStateUpdates()) {
+    ROS_WARN_THROTTLE(1.0, "%s: State incomplete. Ignoring timer callback.",
+                      name_.c_str());
+    return;
+  }
+
+  // TODO!
+}
+
+void RecedingHorizonPlanner::StateCallback(
+    const darpa_msgs::EgoState::ConstPtr& msg, size_t idx) {
+  auto& x = current_states_[idx];
+  CHECK_EQ(x.size(), 4);
+
+  x(0) = msg->x;
+  x(1) = msg->y;
+  x(2) = msg->theta;
+  x(3) = msg->v;
+}
+
+void RecedingHorizonPlanner::StateCallback(
+    const darpa_msgs::OtherState::ConstPtr& msg, size_t idx) {
+  auto& x = current_states_[idx];
+  CHECK_EQ(x.size(), 3);
+
+  x(0) = msg->x;
+  x(1) = msg->y;
+  x(2) = msg->theta;
+}
+
+bool RecedingHorizonPlanner::ReceivedAllStateUpdates() const {
+  for (const auto& x : current_states_) {
+    if (x.hasNaN()) return false;
+  }
+
+  return true;
+}
 
 }  // namespace ilqgames_ros
