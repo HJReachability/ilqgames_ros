@@ -163,7 +163,28 @@ void RecedingHorizonPlanner::TimerCallback(const ros::TimerEvent& e) {
     return;
   }
 
-  // TODO!
+  // Parse state information into big vector.
+  VectorXf x0(problem_->Solver().Dynamics().XDim());
+  size_t dims_so_far = 0;
+  for (const auto& x : current_states_) {
+    x0.segment(dims_so_far, x.size()) = x;
+    dims_so_far += x.size();
+  }
+
+  // Set up next receding horizon problem and solve.
+  problem_->SetUpNextRecedingHorizon(x0, ros::Time::now().toSec(),
+                                     replanning_interval_);
+  const auto log = problem_->Solve();
+
+  // Splice in new solution. Handle first time through separately.
+  if (!solution_splicer_.get())
+    solution_splicer_.reset(new SolutionSplicer(*log));
+  else
+    solution_splicer_->Splice(*log, ros::Time::now().toSec());
+
+  // Overwrite problem with spliced solution.
+  problem_->OverwriteSolution(solution_splicer_->CurrentOperatingPoint(),
+                              solution_splicer_->CurrentStrategies());
 }
 
 void RecedingHorizonPlanner::StateCallback(

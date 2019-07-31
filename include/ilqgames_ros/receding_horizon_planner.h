@@ -44,6 +44,7 @@
 #define ILQGAMES_ROS_RECEDING_HORIZON_PLANNER_H
 
 #include <ilqgames/solver/problem.h>
+#include <ilqgames/solver/solution_splicer.h>
 
 #include <darpa_msgs/EgoState.h>
 #include <darpa_msgs/OtherState.h>
@@ -56,6 +57,7 @@
 namespace ilqgames_ros {
 
 using ilqgames::Problem;
+using ilqgames::SolutionSplicer;
 using Eigen::VectorXf;
 
 class RecedingHorizonPlanner {
@@ -87,6 +89,10 @@ class RecedingHorizonPlanner {
 
   // Planning problem.
   std::shared_ptr<Problem> problem_;
+
+  // Solution splicer to keep track of solution over multiple receding horizon
+  // solver invocations.
+  std::unique_ptr<SolutionSplicer> solution_splicer_;
 
   // Set a recurring timer for a discrete-time controller.
   ros::Timer timer_;

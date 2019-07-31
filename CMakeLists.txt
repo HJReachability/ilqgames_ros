@@ -37,8 +37,6 @@ else()
   add_definitions(-DENABLE_DEBUG_MESSAGES=0)
 endif()
 
-add_definitions(-DPRECOMPUTATION_DIR="${CMAKE_SOURCE_DIR}/fastrack/precomputation/")
-
 set(ILQGAMES_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/../../external/install_isolated/include/ilqgames)
 
 include_directories(
