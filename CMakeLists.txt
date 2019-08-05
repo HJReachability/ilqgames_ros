@@ -57,7 +57,7 @@ add_definitions(-DILQGAMES_ROS_LOG_DIR="${CMAKE_SOURCE_DIR}/logs/")
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIR}
   ${GLOG_INCLUDE_DIRS}
   ${ILQGAMES_INCLUDE_DIRS}
 )
