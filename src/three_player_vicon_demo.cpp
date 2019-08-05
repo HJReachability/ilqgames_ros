@@ -86,9 +86,9 @@ static constexpr float kLaneCostWeight = 25.0;
 static constexpr float kLaneBoundaryCostWeight = 100.0;
 
 static constexpr float kMinProximity = 1.0;
-static constexpr float kP1ProximityCostWeight = 100.0;
-static constexpr float kP2ProximityCostWeight = 100.0;
-static constexpr float kP3ProximityCostWeight = 100.0;
+static constexpr float kP1ProximityCostWeight = 1.0;
+static constexpr float kP2ProximityCostWeight = 1.0;
+static constexpr float kP3ProximityCostWeight = 1.0;
 
 static constexpr bool kOrientedRight = true;
 
@@ -149,8 +149,15 @@ ThreePlayerViconDemo::ThreePlayerViconDemo()
 
   // Set up initial state.
   // NOTE: this will get overwritten before the solver is actually called.
-  x0_ = VectorXf::Constant(dynamics->XDim(),
-                           std::numeric_limits<float>::quiet_NaN());
+  x0_ = VectorXf::Zero(dynamics->XDim());
+  x0_(kP1XIdx) = -10.0;
+  x0_(kP1YIdx) = -10.0;
+  x0_(kP1VIdx) = 1.0;
+  x0_(kP2XIdx) = -3.0;
+  x0_(kP2YIdx) = 3.0;
+  x0_(kP3XIdx) = 3.0;
+  x0_(kP3YIdx) = 1.0;
+  x0_(kP3HeadingIdx) = -1.7;
 
   // Set up initial strategies and operating point.
   strategies_.reset(new std::vector<Strategy>());
@@ -196,8 +203,8 @@ ThreePlayerViconDemo::ThreePlayerViconDemo()
   // Penalize control effort.
   const auto p1_omega_cost = std::make_shared<QuadraticCost>(
       kOmegaCostWeight, kP1OmegaIdx, 0.0, "Steering");
-  const auto p1_a_cost = std::make_shared<QuadraticCost>(
-      kACostWeight, kP1AIdx, 0.0, "Acceleration");
+  const auto p1_a_cost = std::make_shared<QuadraticCost>(kACostWeight, kP1AIdx,
+                                                         0.0, "Acceleration");
   p1_cost.AddControlCost(0, p1_omega_cost);
   p1_cost.AddControlCost(0, p1_a_cost);
 
