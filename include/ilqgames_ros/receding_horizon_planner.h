@@ -64,7 +64,7 @@ class RecedingHorizonPlanner {
  public:
   ~RecedingHorizonPlanner() {}
   RecedingHorizonPlanner(const std::shared_ptr<Problem>& problem)
-      : problem_(problem), initialized_(false) {
+    : problem_(problem), initialized_(false), is_first_timer_callback_(true) {
     CHECK_NOTNULL(problem.get());
   }
 
@@ -86,6 +86,9 @@ class RecedingHorizonPlanner {
 
   // Check to see if we've received state updates for all vehicles.
   bool ReceivedAllStateUpdates() const;
+
+  // Plans trajectory.
+  void Plan();
 
   // Planning problem.
   std::shared_ptr<Problem> problem_;
@@ -112,6 +115,8 @@ class RecedingHorizonPlanner {
   // Naming and initialization.
   std::string name_;
   bool initialized_;
+
+  bool is_first_timer_callback_;
 };
 
 }  // namespace ilqgames_ros

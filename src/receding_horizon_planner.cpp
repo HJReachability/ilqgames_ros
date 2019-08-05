@@ -40,6 +40,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <ilqgames/dynamics/single_player_unicycle_4d.h>
 #include <ilqgames/solver/problem.h>
 #include <ilqgames_ros/receding_horizon_planner.h>
 
@@ -53,6 +54,8 @@
 #include <vector>
 
 namespace ilqgames_ros {
+
+using ilqgames::SinglePlayerUnicycle4D;
 
 bool RecedingHorizonPlanner::Initialize(const ros::NodeHandle& n) {
   name_ = ros::names::append(n.getNamespace(), "receding_horizon_planner");
@@ -99,16 +102,11 @@ bool RecedingHorizonPlanner::LoadParameters(const ros::NodeHandle& n) {
 
   // Timer interval.
   if (!nl.getParam("replanning_interval", replanning_interval_)) return false;
-
   return true;
 }
 
 bool RecedingHorizonPlanner::RegisterCallbacks(const ros::NodeHandle& n) {
   ros::NodeHandle nl(n);
-
-  // Timer.
-  timer_ = nl.createTimer(ros::Duration(replanning_interval_),
-                          &RecedingHorizonPlanner::TimerCallback, this);
 
   // Publishers.
   traj_pub_ =
@@ -147,6 +145,10 @@ bool RecedingHorizonPlanner::RegisterCallbacks(const ros::NodeHandle& n) {
     }
   }
 
+  // Timer.
+  timer_ = nl.createTimer(ros::Duration(replanning_interval_),
+                          &RecedingHorizonPlanner::TimerCallback, this, false, false);
+
   return true;
 }
 
@@ -163,28 +165,7 @@ void RecedingHorizonPlanner::TimerCallback(const ros::TimerEvent& e) {
     return;
   }
 
-  // Parse state information into big vector.
-  VectorXf x0(problem_->Solver().Dynamics().XDim());
-  size_t dims_so_far = 0;
-  for (const auto& x : current_states_) {
-    x0.segment(dims_so_far, x.size()) = x;
-    dims_so_far += x.size();
-  }
-
-  // Set up next receding horizon problem and solve.
-  problem_->SetUpNextRecedingHorizon(x0, ros::Time::now().toSec(),
-                                     replanning_interval_);
-  const auto log = problem_->Solve();
-
-  // Splice in new solution. Handle first time through separately.
-  if (!solution_splicer_.get())
-    solution_splicer_.reset(new SolutionSplicer(*log));
-  else
-    solution_splicer_->Splice(*log, ros::Time::now().toSec());
-
-  // Overwrite problem with spliced solution.
-  problem_->OverwriteSolution(solution_splicer_->CurrentOperatingPoint(),
-                              solution_splicer_->CurrentStrategies());
+  Plan();
 }
 
 void RecedingHorizonPlanner::StateCallback(
@@ -196,6 +177,12 @@ void RecedingHorizonPlanner::StateCallback(
   x(1) = msg->y;
   x(2) = msg->theta;
   x(3) = msg->v;
+
+  if (is_first_timer_callback_ && ReceivedAllStateUpdates()) {
+    Plan();
+    timer_.start();
+    is_first_timer_callback_ = false;
+  }
 }
 
 void RecedingHorizonPlanner::StateCallback(
@@ -206,6 +193,12 @@ void RecedingHorizonPlanner::StateCallback(
   x(0) = msg->x;
   x(1) = msg->y;
   x(2) = msg->theta;
+
+  if (is_first_timer_callback_ && ReceivedAllStateUpdates()) {
+    Plan();
+    timer_.start();
+    is_first_timer_callback_ = false;
+  }
 }
 
 bool RecedingHorizonPlanner::ReceivedAllStateUpdates() const {
@@ -214,6 +207,78 @@ bool RecedingHorizonPlanner::ReceivedAllStateUpdates() const {
   }
 
   return true;
+}
+
+void RecedingHorizonPlanner::Plan() {
+  const double nowt = ros::Time::now().toSec();
+
+  // First timer callback, reset initial time.
+  if (is_first_timer_callback_) {
+    ROS_INFO("First plan");
+    problem_->ResetInitialTime(nowt);
+    CHECK_EQ(nowt, problem_->CurrentOperatingPoint().t0);
+    is_first_timer_callback_ = false;
+  }
+
+  // Parse state information into big vector.
+  VectorXf x0(problem_->Solver().Dynamics().XDim());
+  size_t dims_so_far = 0;
+  for (const auto& x : current_states_) {
+    x0.segment(dims_so_far, x.size()) = x;
+    dims_so_far += x.size();
+  }
+
+
+  CHECK_GT(problem_->Solver().TimeHorizon(), replanning_interval_);
+  CHECK_GT(static_cast<double>(problem_->Solver().TimeHorizon()) +
+    static_cast<double>(problem_->CurrentOperatingPoint().t0),
+    static_cast<double>(nowt) + static_cast<double>(replanning_interval_));
+
+  std::cout << "replanning interval: " << replanning_interval_ << std::endl;
+  std::cout << "time hor: " << problem_->Solver().TimeHorizon() << std::endl;
+
+  std::cout << "diff = " << (replanning_interval_ + 1.6e9) - (problem_->Solver().TimeHorizon() + 1.6e9) << std::endl;
+
+  std::cout << "LHS: " << nowt + replanning_interval_ << std::endl;
+  std::cout << "RHS: " << problem_->CurrentOperatingPoint().t0 + problem_->Solver().TimeHorizon() << std::endl;
+  std::cout << "LHS - RHS = " << (nowt + replanning_interval_) - (problem_->CurrentOperatingPoint().t0 + problem_->Solver().TimeHorizon()) << std::endl;
+  std::cout << "nowt - t0 = " << nowt - problem_->CurrentOperatingPoint().t0 << std::endl;
+  std::cout << "replanning_interval - time hor = " << replanning_interval_ - problem_->Solver().TimeHorizon() << std::endl;
+  std::cout << "nowt - flotmax" << nowt - std::numeric_limits<float>::max() << std::endl;
+
+  // Set up next receding horizon problem and solve.
+  problem_->SetUpNextRecedingHorizon(x0, nowt,
+                                     replanning_interval_);
+  const ros::Time solve_start_time = ros::Time::now();
+  const auto log = problem_->Solve();
+  ROS_INFO_STREAM("planning time: " << (ros::Time::now() - solve_start_time).toSec());
+
+  // Splice in new solution. Handle first time through separately.
+  if (!solution_splicer_.get())
+    solution_splicer_.reset(new SolutionSplicer(*log));
+  else
+    solution_splicer_->Splice(*log, ros::Time::now().toSec());
+
+  // Overwrite problem with spliced solution.
+  problem_->OverwriteSolution(solution_splicer_->CurrentOperatingPoint(),
+                              solution_splicer_->CurrentStrategies());
+
+  // Pack into ROS msg.
+  const auto& traj = solution_splicer_->CurrentOperatingPoint();
+
+  darpa_msgs::EgoTrajectory msg;
+  for (size_t ii = 0; ii < traj.xs.size(); ii++) {
+    darpa_msgs::EgoState state;
+    state.x = traj.xs[ii](SinglePlayerUnicycle4D::kPxIdx);
+    state.y = traj.xs[ii](SinglePlayerUnicycle4D::kPyIdx);
+    state.theta = traj.xs[ii](SinglePlayerUnicycle4D::kThetaIdx);
+    state.v = traj.xs[ii](SinglePlayerUnicycle4D::kVIdx);
+
+    msg.states.push_back(state);
+    msg.times.push_back(traj.t0 + problem_->Solver().ComputeTimeStamp(ii));
+  }
+
+  traj_pub_.publish(msg);
 }
 
 }  // namespace ilqgames_ros
