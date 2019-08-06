@@ -80,15 +80,15 @@ static constexpr float kOmegaCostWeight = 50.0;
 
 static constexpr float kMaxVCostWeight = 100.0;
 static constexpr float kGoalCostWeight = 10.0;
-static constexpr float kNominalVCostWeight = 1.0;
+static constexpr float kNominalVCostWeight = 0.0;
 
-static constexpr float kLaneCostWeight = 25.0;
+static constexpr float kLaneCostWeight = 50.0;
 static constexpr float kLaneBoundaryCostWeight = 100.0;
 
-static constexpr float kMinProximity = 1.0;
-static constexpr float kP1ProximityCostWeight = 1.0;
-static constexpr float kP2ProximityCostWeight = 1.0;
-static constexpr float kP3ProximityCostWeight = 1.0;
+static constexpr float kMinProximity = 2.0;
+static constexpr float kP1ProximityCostWeight = 5.0;
+static constexpr float kP2ProximityCostWeight = 5.0;
+static constexpr float kP3ProximityCostWeight = 5.0;
 
 static constexpr bool kOrientedRight = true;
 
@@ -97,13 +97,13 @@ static constexpr float kLaneHalfWidth = 0.5;  // m
 
 // Goal points.
 // HACK: these should probably be read from the ROS parameter server.
-static constexpr float kP1GoalX = 4.0;  // m
-static constexpr float kP1GoalY = 4.0;  // m
+static constexpr float kP1GoalX = 3.0;  // m
+static constexpr float kP1GoalY = 3.0;  // m
 
-static constexpr float kP2GoalX = 4.0;   // m
-static constexpr float kP2GoalY = -4.0;  // m
+static constexpr float kP2GoalX = 3.0;   // m
+static constexpr float kP2GoalY = -3.0;  // m
 
-static constexpr float kP3GoalX = -4.0;  // m
+static constexpr float kP3GoalX = -3.0;  // m
 static constexpr float kP3GoalY = 0.0;   // m
 
 // Nominal and max speed.
@@ -149,15 +149,8 @@ ThreePlayerViconDemo::ThreePlayerViconDemo()
 
   // Set up initial state.
   // NOTE: this will get overwritten before the solver is actually called.
-  x0_ = VectorXf::Zero(dynamics->XDim());
-  x0_(kP1XIdx) = -10.0;
-  x0_(kP1YIdx) = -10.0;
-  x0_(kP1VIdx) = 1.0;
-  x0_(kP2XIdx) = -3.0;
-  x0_(kP2YIdx) = 3.0;
-  x0_(kP3XIdx) = 3.0;
-  x0_(kP3YIdx) = 1.0;
-  x0_(kP3HeadingIdx) = -1.7;
+  x0_ = VectorXf::Constant(dynamics->XDim(),
+                           std::numeric_limits<float>::quiet_NaN());
 
   // Set up initial strategies and operating point.
   strategies_.reset(new std::vector<Strategy>());
