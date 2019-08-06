@@ -64,7 +64,7 @@ class RecedingHorizonPlanner {
  public:
   ~RecedingHorizonPlanner() {}
   RecedingHorizonPlanner(const std::shared_ptr<Problem>& problem)
-    : problem_(problem), initialized_(false), is_first_timer_callback_(true) {
+      : problem_(problem), initialized_(false), is_first_timer_callback_(true) {
     CHECK_NOTNULL(problem.get());
   }
 
@@ -115,7 +115,6 @@ class RecedingHorizonPlanner {
   // Naming and initialization.
   std::string name_;
   bool initialized_;
-
   bool is_first_timer_callback_;
 };
 

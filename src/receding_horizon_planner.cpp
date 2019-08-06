@@ -147,7 +147,8 @@ bool RecedingHorizonPlanner::RegisterCallbacks(const ros::NodeHandle& n) {
 
   // Timer.
   timer_ = nl.createTimer(ros::Duration(replanning_interval_),
-                          &RecedingHorizonPlanner::TimerCallback, this, false, false);
+                          &RecedingHorizonPlanner::TimerCallback, this, false,
+                          false);
 
   return true;
 }
@@ -180,8 +181,8 @@ void RecedingHorizonPlanner::StateCallback(
 
   if (is_first_timer_callback_ && ReceivedAllStateUpdates()) {
     Plan();
-    timer_.start();
     is_first_timer_callback_ = false;
+    timer_.start();
   }
 }
 
@@ -196,8 +197,8 @@ void RecedingHorizonPlanner::StateCallback(
 
   if (is_first_timer_callback_ && ReceivedAllStateUpdates()) {
     Plan();
-    timer_.start();
     is_first_timer_callback_ = false;
+    timer_.start();
   }
 }
 
@@ -210,15 +211,7 @@ bool RecedingHorizonPlanner::ReceivedAllStateUpdates() const {
 }
 
 void RecedingHorizonPlanner::Plan() {
-  const double nowt = ros::Time::now().toSec();
-
-  // First timer callback, reset initial time.
-  if (is_first_timer_callback_) {
-    ROS_INFO("First plan");
-    problem_->ResetInitialTime(nowt);
-    CHECK_EQ(nowt, problem_->CurrentOperatingPoint().t0);
-    is_first_timer_callback_ = false;
-  }
+  const double t = ros::Time::now().toSec();
 
   // Parse state information into big vector.
   VectorXf x0(problem_->Solver().Dynamics().XDim());
@@ -228,36 +221,29 @@ void RecedingHorizonPlanner::Plan() {
     dims_so_far += x.size();
   }
 
-
-  CHECK_GT(problem_->Solver().TimeHorizon(), replanning_interval_);
-  CHECK_GT(static_cast<double>(problem_->Solver().TimeHorizon()) +
-    static_cast<double>(problem_->CurrentOperatingPoint().t0),
-    static_cast<double>(nowt) + static_cast<double>(replanning_interval_));
-
-  std::cout << "replanning interval: " << replanning_interval_ << std::endl;
-  std::cout << "time hor: " << problem_->Solver().TimeHorizon() << std::endl;
-
-  std::cout << "diff = " << (replanning_interval_ + 1.6e9) - (problem_->Solver().TimeHorizon() + 1.6e9) << std::endl;
-
-  std::cout << "LHS: " << nowt + replanning_interval_ << std::endl;
-  std::cout << "RHS: " << problem_->CurrentOperatingPoint().t0 + problem_->Solver().TimeHorizon() << std::endl;
-  std::cout << "LHS - RHS = " << (nowt + replanning_interval_) - (problem_->CurrentOperatingPoint().t0 + problem_->Solver().TimeHorizon()) << std::endl;
-  std::cout << "nowt - t0 = " << nowt - problem_->CurrentOperatingPoint().t0 << std::endl;
-  std::cout << "replanning_interval - time hor = " << replanning_interval_ - problem_->Solver().TimeHorizon() << std::endl;
-  std::cout << "nowt - flotmax" << nowt - std::numeric_limits<float>::max() << std::endl;
+  // First timer callback, reset initial time.
+  double planner_runtime = replanning_interval_;
+  if (is_first_timer_callback_) {
+    ROS_INFO("First plan");
+    problem_->ResetInitialTime(t);
+    planner_runtime = ilqgames::constants::kSmallNumber;
+    is_first_timer_callback_ = false;
+  }
 
   // Set up next receding horizon problem and solve.
-  problem_->SetUpNextRecedingHorizon(x0, nowt,
-                                     replanning_interval_);
+  problem_->SetUpNextRecedingHorizon(x0, t, planner_runtime);
   const ros::Time solve_start_time = ros::Time::now();
   const auto log = problem_->Solve();
-  ROS_INFO_STREAM("planning time: " << (ros::Time::now() - solve_start_time).toSec());
+  ROS_INFO_STREAM(
+      "planning time: " << (ros::Time::now() - solve_start_time).toSec());
 
   // Splice in new solution. Handle first time through separately.
   if (!solution_splicer_.get())
     solution_splicer_.reset(new SolutionSplicer(*log));
-  else
+  else {
+    // solution_splicer_->Splice(*log, ros::Time::now().toSec());
     solution_splicer_->Splice(*log, ros::Time::now().toSec());
+  }
 
   // Overwrite problem with spliced solution.
   problem_->OverwriteSolution(solution_splicer_->CurrentOperatingPoint(),
