@@ -233,7 +233,7 @@ void RecedingHorizonPlanner::Plan() {
   // Set up next receding horizon problem and solve.
   problem_->SetUpNextRecedingHorizon(x0, t, planner_runtime);
   const ros::Time solve_start_time = ros::Time::now();
-  const auto log = problem_->Solve();
+  const auto log = problem_->Solve(replanning_interval_);
   ROS_INFO_STREAM(
       "planning time: " << (ros::Time::now() - solve_start_time).toSec());
 
