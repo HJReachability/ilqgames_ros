@@ -46,6 +46,8 @@
 #include <ilqgames/solver/problem.h>
 #include <ilqgames/utils/types.h>
 
+#include <ros/ros.h>
+
 namespace ilqgames_ros {
 
 using namespace ilqgames;
@@ -53,7 +55,7 @@ using namespace ilqgames;
 class ThreePlayerViconDemo : public Problem {
  public:
   ~ThreePlayerViconDemo() {}
-  ThreePlayerViconDemo();
+  ThreePlayerViconDemo(const ros::NodeHandle& n);
 
   // Accessors.
   const std::vector<Dimension>& XIdxs() const { return x_idxs_; }
@@ -61,6 +63,28 @@ class ThreePlayerViconDemo : public Problem {
   const std::vector<Dimension>& HeadingIdxs() const { return heading_idxs_; }
 
  private:
+  // Load parameters from the ROS parameter server.
+  void LoadParameters(const ros::NodeHandle& n);
+
+  // Goal locations.
+  float kP1GoalX, kP1GoalY, kP2GoalX, kP2GoalY, kP3GoalX, kP3GoalY;
+
+  // Min/max/nominal speeds.
+  float kMaxV, kMinV, kNominalV, kDubinsV;
+
+  // Control cost weights.
+  float kACostWeight, kOmegaCostWeight;
+
+  // Speed and goal weights.
+  float kMaxVCostWeight, kNominalVCostWeight, kGoalCostWeight;
+
+  // Lane weights.
+  float kLaneHalfWidth, kLaneCostWeight, kLaneBoundaryCostWeight;
+
+  // Proximity weights.
+  float kMinProximity, kP1ProximityCostWeight, kP2ProximityCostWeight,
+      kP3ProximityCostWeight;
+
   // Indices for x/y/heading.
   const std::vector<Dimension> x_idxs_;
   const std::vector<Dimension> y_idxs_;

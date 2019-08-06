@@ -61,7 +61,9 @@
 #include <ilqgames/utils/types.h>
 #include <ilqgames_ros/three_player_vicon_demo.h>
 
+#include <glog/logging.h>
 #include <math.h>
+#include <ros/ros.h>
 #include <memory>
 #include <vector>
 
@@ -74,43 +76,8 @@ static constexpr Time kTimeHorizon = 10.0;  // s
 static constexpr size_t kNumTimeSteps =
     static_cast<size_t>(kTimeHorizon / kTimeStep);
 
-// Cost weights.
-static constexpr float kACostWeight = 5.0;
-static constexpr float kOmegaCostWeight = 50.0;
-
-static constexpr float kMaxVCostWeight = 100.0;
-static constexpr float kGoalCostWeight = 10.0;
-static constexpr float kNominalVCostWeight = 0.0;
-
-static constexpr float kLaneCostWeight = 50.0;
-static constexpr float kLaneBoundaryCostWeight = 100.0;
-
-static constexpr float kMinProximity = 2.0;
-static constexpr float kP1ProximityCostWeight = 5.0;
-static constexpr float kP2ProximityCostWeight = 5.0;
-static constexpr float kP3ProximityCostWeight = 5.0;
-
+// Flag for one-sided costs.
 static constexpr bool kOrientedRight = true;
-
-// Lane width.
-static constexpr float kLaneHalfWidth = 0.5;  // m
-
-// Goal points.
-// HACK: these should probably be read from the ROS parameter server.
-static constexpr float kP1GoalX = 3.0;  // m
-static constexpr float kP1GoalY = 3.0;  // m
-
-static constexpr float kP2GoalX = 3.0;   // m
-static constexpr float kP2GoalY = -3.0;  // m
-
-static constexpr float kP3GoalX = -3.0;  // m
-static constexpr float kP3GoalY = 0.0;   // m
-
-// Nominal and max speed.
-static constexpr float kP1MaxV = 1.0;    // m/s
-static constexpr float kMinV = 0.1;      // m/s
-static constexpr float kNominalV = 0.5;  // m/s
-static constexpr float kDubinsV = 0.5;   // m/s
 
 // State dimensions.
 using P1 = SinglePlayerUnicycle4D;
@@ -137,8 +104,9 @@ static constexpr size_t kP2OmegaIdx = P2::kOmegaIdx;
 static constexpr size_t kP3OmegaIdx = P3::kOmegaIdx;
 }  // anonymous namespace
 
-ThreePlayerViconDemo::ThreePlayerViconDemo()
-    : x_idxs_({kP1XIdx, kP2XIdx, kP3XIdx}),
+ThreePlayerViconDemo::ThreePlayerViconDemo(const ros::NodeHandle& n)
+    : LoadParameters(n),
+      x_idxs_({kP1XIdx, kP2XIdx, kP3XIdx}),
       y_idxs_({kP1YIdx, kP2YIdx, kP3YIdx}),
       heading_idxs_({kP1HeadingIdx, kP2HeadingIdx, kP3HeadingIdx}) {
   // Create dynamics.
@@ -269,6 +237,36 @@ ThreePlayerViconDemo::ThreePlayerViconDemo()
   // Set up solver.
   solver_.reset(new LinesearchingILQSolver(
       dynamics, {p1_cost, p2_cost, p3_cost}, kTimeHorizon, kTimeStep));
+}
+
+void ThreePlayerViconDemo::LoadParameters(const ros::NodeHandle& n) {
+  ros::NodeHandle nl(n);
+
+  CHECK(nl.getParam("goals/p1/x", kP1GoalX));
+  CHECK(nl.getParam("goals/p1/y", kP1GoalY));
+  CHECK(nl.getParam("goals/p2/x", kP2GoalX));
+  CHECK(nl.getParam("goals/p2/y", kP2GoalY));
+  CHECK(nl.getParam("goals/p3/x", kP3GoalX));
+  CHECK(nl.getParam("goals/p3/y", kP3GoalY));
+
+  CHECK(nl.getParam("speed/min", kMinV));
+  CHECK(nl.getParam("speed/max", kMaxV));
+  CHECK(nl.getParam("speed/nominal", kNominalV));
+  CHECK(nl.getParam("speed/dubins", kDubinsV));
+
+  CHECK(nl.getParam("weight/u/accel", kACostWeight));
+  CHECK(nl.getParam("weight/u/omega", kOmegaCostWeight));
+  CHECK(nl.getParam("weight/x/v/max", kMaxVCostWeight));
+  CHECK(nl.getParam("weight/x/v/nominal", kNominalVCostWeight));
+  CHECK(nl.getParam("weight/x/goal", kGoalCostWeight));
+  CHECK(nl.getParam("weight/x/lane/center", kLaneCostWeight));
+  CHECK(nl.getParam("weight/x/lane/boundary", kLaneBoundaryCostWeight));
+  CHECK(nl.getParam("weight/x/proximity/p1", kP1ProximityCostWeight));
+  CHECK(nl.getParam("weight/x/proximity/p2", kP2ProximityCostWeight));
+  CHECK(nl.getParam("weight/x/proximity/p3", kP3ProximityCostWeight));
+
+  CHECK(nl.getParam("proximity/min", kMinProximity));
+  CHECK(nl.getParam("lane/half_width", kLaneHalfWidth));
 }
 
 }  // namespace ilqgames_ros
