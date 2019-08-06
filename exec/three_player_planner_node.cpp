@@ -43,14 +43,14 @@
 
 int main(int argc, char** argv) {
   const std::string log_file =
-      ILQGAMES_ROS_LOG_DIR + std::string("/three_player_intersection.log");
+      ILQGAMES_ROS_LOG_DIR + std::string("/three_player_vicon.log");
   google::SetLogDestination(0, log_file.c_str());
   google::InitGoogleLogging(argv[0]);
 
   ros::init(argc, argv, "ilqgame_planner");
   ros::NodeHandle n("~");
 
-  auto problem = std::make_shared<ilqgames_ros::ThreePlayerViconDemo>();
+  auto problem = std::make_shared<ilqgames_ros::ThreePlayerViconDemo>(n);
   ilqgames_ros::RecedingHorizonPlanner planner(problem);
 
   if (!planner.Initialize(n)) {

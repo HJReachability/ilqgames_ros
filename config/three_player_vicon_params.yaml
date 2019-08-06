@@ -20,11 +20,11 @@ planner:
     u:
       accel: 5.0
       omega: 50.0
-    v:
-      max: 100.0
-      nominal: 0.0
     x:
       goal: 10.0
+      v:
+        max: 100.0
+        nominal: 0.0
       lane:
         center: 50.0
         boundary: 100.0

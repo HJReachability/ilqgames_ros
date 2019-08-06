@@ -105,10 +105,11 @@ static constexpr size_t kP3OmegaIdx = P3::kOmegaIdx;
 }  // anonymous namespace
 
 ThreePlayerViconDemo::ThreePlayerViconDemo(const ros::NodeHandle& n)
-    : LoadParameters(n),
-      x_idxs_({kP1XIdx, kP2XIdx, kP3XIdx}),
+    : x_idxs_({kP1XIdx, kP2XIdx, kP3XIdx}),
       y_idxs_({kP1YIdx, kP2YIdx, kP3YIdx}),
       heading_idxs_({kP1HeadingIdx, kP2HeadingIdx, kP3HeadingIdx}) {
+  LoadParameters(n);
+
   // Create dynamics.
   const std::shared_ptr<ConcatenatedDynamicalSystem> dynamics(
       new ConcatenatedDynamicalSystem({std::make_shared<P1>(),
@@ -154,7 +155,7 @@ ThreePlayerViconDemo::ThreePlayerViconDemo(const ros::NodeHandle& n)
   const auto p1_min_v_cost = std::make_shared<SemiquadraticCost>(
       kMaxVCostWeight, kP1VIdx, kMinV, !kOrientedRight, "MinV");
   const auto p1_max_v_cost = std::make_shared<SemiquadraticCost>(
-      kMaxVCostWeight, kP1VIdx, kP1MaxV, kOrientedRight, "MaxV");
+      kMaxVCostWeight, kP1VIdx, kMaxV, kOrientedRight, "MaxV");
   const auto p1_nominal_v_cost = std::make_shared<QuadraticCost>(
       kNominalVCostWeight, kP1VIdx, kNominalV, "NominalV");
   p1_cost.AddStateCost(p1_min_v_cost);
