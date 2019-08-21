@@ -40,6 +40,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <ilqgames/dynamics/single_player_dubins_car.h>
 #include <ilqgames/dynamics/single_player_unicycle_4d.h>
 #include <ilqgames/solver/problem.h>
 #include <ilqgames_ros/receding_horizon_planner.h>
@@ -91,8 +92,12 @@ bool RecedingHorizonPlanner::Initialize(const ros::NodeHandle& n) {
 bool RecedingHorizonPlanner::LoadParameters(const ros::NodeHandle& n) {
   ros::NodeHandle nl(n);
 
+  // Frames.
+  if (!nl.getParam("frames/fixed", fixed_frame_)) return false;
+
   // Topics.
   if (!nl.getParam("topic/traj", traj_topic_)) return false;
+  if (!nl.getParam("viz/traj", traj_viz_topic_)) return false;
   if (!nl.getParam("topic/state/names", state_topics_)) return false;
   CHECK_EQ(state_topics_.size(), problem_->Solver().Dynamics().NumPlayers());
 
@@ -111,6 +116,9 @@ bool RecedingHorizonPlanner::RegisterCallbacks(const ros::NodeHandle& n) {
   // Publishers.
   traj_pub_ =
       nl.advertise<darpa_msgs::EgoTrajectory>(traj_topic_.c_str(), 1, false);
+
+  traj_viz_pub_ = nl.advertise<visualization_msgs::Marker>(
+      traj_viz_topic_.c_str(), 1, false);
 
   // Subscribers.
   for (size_t ii = 0; ii < state_topics_.size(); ii++) {
@@ -265,6 +273,66 @@ void RecedingHorizonPlanner::Plan() {
   }
 
   traj_pub_.publish(msg);
+
+  // Vizualize everybody's trajectory.
+  std::vector<visualization_msgs::Marker> spheres(state_topics_.size());
+  std::vector<visualization_msgs::Marker> lines(state_topics_.size());
+  const auto pub_time = ros::Time::now();
+  for (size_t ii = 0; ii < spheres.size(); ii++) {
+    auto& s = spheres[ii];
+    auto& l = lines[ii];
+
+    auto c = std_msgs::ColorRGBA();
+    c.r = static_cast<double>(ii) / (spheres.size() - 1);
+    c.g = 0.1;
+    c.b = 1.0 - c.r;
+    c.a = 1.0;
+
+    s.header.frame_id = fixed_frame_.c_str();
+    s.header.stamp = pub_time;
+    s.ns = "spheres";
+    s.id = ii;
+    s.type = visualization_msgs::Marker::SPHERE_LIST();
+    s.action = visualization_msgs::Marker::ADD();
+    s.scale.x = 0.2;
+    s.scale.y = 0.2;
+    s.scale.z = 0.2;
+    s.color = c;
+
+    l.header.frame_id = fixed_frame_.c_str();
+    l.header.stamp = pub_time;
+    l.ns = "lines";
+    l.id = ii;
+    l.type = visualization_msgs::Marker::SPHERE_LIST();
+    l.action = visualization_msgs::Marker::ADD();
+    l.scale.x = 0.2;
+    l.scale.y = 0.2;
+    l.scale.z = 0.2;
+    l.color = c;
+  }
+
+  for (size_t kk = 0; kk < traj.xs.size(); kk++) {
+    size_t dims_so_far = 0;
+    for (size_t ii = 0; ii < spheres.size(); ii++) {
+      // HACK! Assume it's a unicycle and then a bunch of Dubins cars.
+      // HACK! Also assumes first two states in each subsystem are (x, y).
+      auto p = geometry_msgs::Vector3();
+      p.x = traj.xs[dims_so_far];
+      p.y = traj.xs[dims_so_far + 1];
+      p.z = 0.0;
+
+      dims_so_far += (ii == 0) ? SinglePlayerUnicycle4D::kNumXDims
+                               : SinglePlayerDubinsCar::kNumXDims;
+
+      spheres[ii].points.push_back(p);
+      lines[ii].points.push_back(p);
+    }
+
+    for (size_t ii = 0; ii < spheres.size(); ii++) {
+      traj_viz_pub_.publish(spheres[ii]);
+      traj_viz_pub_.publish(lines[ii]);
+    }
+  }
 }
 
 }  // namespace ilqgames_ros

@@ -51,14 +51,15 @@
 
 #include <glog/logging.h>
 #include <ros/ros.h>
+#include <visualization_msgs/Marker.h>
 #include <memory>
 #include <vector>
 
 namespace ilqgames_ros {
 
+using Eigen::VectorXf;
 using ilqgames::Problem;
 using ilqgames::SolutionSplicer;
-using Eigen::VectorXf;
 
 class RecedingHorizonPlanner {
  public:
@@ -97,15 +98,20 @@ class RecedingHorizonPlanner {
   // solver invocations.
   std::unique_ptr<SolutionSplicer> solution_splicer_;
 
+  // Fixed frame id.
+  std::string fixed_frame_;
+
   // Set a recurring timer for a discrete-time controller.
   ros::Timer timer_;
   float replanning_interval_;
 
   // Publishers/subscribers and related topics.
   ros::Publisher traj_pub_;
+  ros::Publisher traj_viz_pub_;
   std::vector<ros::Subscriber> state_subs_;
 
   std::string traj_topic_;
+  std::string traj_viz_topic_;
   std::vector<std::string> state_topics_;
   std::vector<std::string> state_types_;
 
