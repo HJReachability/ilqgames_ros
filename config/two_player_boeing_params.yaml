@@ -1,0 +1,39 @@
+planner:
+  goals:
+    p1:
+      x: 3.0
+      y: 3.0
+    p2:
+      x: 3.0
+      y: -3.0
+
+  speed:
+    min: 0.1
+    max: 0.2
+    nominal: 0.5
+    dubins: 0.5
+
+  weight:
+    u:
+      accel: 5.0
+      omega: 50.0
+    x:
+      goal: 10.0
+      v:
+        max: 100.0
+        nominal: 0.0
+      lane:
+        center: 50.0
+        boundary: 100.0
+      proximity:
+        p1: 1.0
+        p2: 1.0
+
+  proximity:
+    min: 2.0
+
+  lane:
+    half_width: 0.5
+
+  srv:
+    polyline_position: polyline_position
