@@ -49,14 +49,17 @@
 #include <darpa_msgs/EgoTrajectory.h>
 #include <darpa_msgs/OtherState.h>
 
+#include <geometry_msgs/Point.h>
 #include <glog/logging.h>
 #include <ros/ros.h>
+#include <visualization_msgs/Marker.h>
 #include <memory>
 #include <vector>
 
 namespace ilqgames_ros {
 
 using ilqgames::SinglePlayerUnicycle4D;
+using ilqgames::SinglePlayerDubinsCar;
 
 bool RecedingHorizonPlanner::Initialize(const ros::NodeHandle& n) {
   name_ = ros::names::append(n.getNamespace(), "receding_horizon_planner");
@@ -208,6 +211,9 @@ void RecedingHorizonPlanner::StateCallback(
     is_first_timer_callback_ = false;
     timer_.start();
   }
+
+  for (const auto& state : current_states_)
+    std::cout << state.transpose() << std::endl;
 }
 
 bool RecedingHorizonPlanner::ReceivedAllStateUpdates() const {
@@ -292,8 +298,8 @@ void RecedingHorizonPlanner::Plan() {
     s.header.stamp = pub_time;
     s.ns = "spheres";
     s.id = ii;
-    s.type = visualization_msgs::Marker::SPHERE_LIST();
-    s.action = visualization_msgs::Marker::ADD();
+    s.type = visualization_msgs::Marker::SPHERE_LIST;
+    s.action = visualization_msgs::Marker::ADD;
     s.scale.x = 0.2;
     s.scale.y = 0.2;
     s.scale.z = 0.2;
@@ -303,8 +309,8 @@ void RecedingHorizonPlanner::Plan() {
     l.header.stamp = pub_time;
     l.ns = "lines";
     l.id = ii;
-    l.type = visualization_msgs::Marker::SPHERE_LIST();
-    l.action = visualization_msgs::Marker::ADD();
+    l.type = visualization_msgs::Marker::SPHERE_LIST;
+    l.action = visualization_msgs::Marker::ADD;
     l.scale.x = 0.2;
     l.scale.y = 0.2;
     l.scale.z = 0.2;
@@ -316,10 +322,12 @@ void RecedingHorizonPlanner::Plan() {
     for (size_t ii = 0; ii < spheres.size(); ii++) {
       // HACK! Assume it's a unicycle and then a bunch of Dubins cars.
       // HACK! Also assumes first two states in each subsystem are (x, y).
-      auto p = geometry_msgs::Vector3();
-      p.x = traj.xs[dims_so_far];
-      p.y = traj.xs[dims_so_far + 1];
+      geometry_msgs::Point p;
+      p.x = traj.xs[kk](dims_so_far);
+      p.y = traj.xs[kk](dims_so_far + 1);
       p.z = 0.0;
+
+      std::cout << "Point: " << p.x << ", " << p.y << std::endl;
 
       dims_so_far += (ii == 0) ? SinglePlayerUnicycle4D::kNumXDims
                                : SinglePlayerDubinsCar::kNumXDims;
