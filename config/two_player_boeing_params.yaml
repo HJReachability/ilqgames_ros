@@ -1,4 +1,22 @@
-planner:
+ilqgame_planner:
+  frames:
+    fixed: world
+
+  topic:
+    traj: /ilq_traj
+    state:
+      names:
+        - /ego
+        - /other
+      types:
+        - EgoState
+        - OtherState
+
+  viz:
+    traj: /viz/traj
+
+  replanning_interval: 0.25
+
   goals:
     p1:
       x: 3.0
@@ -36,4 +54,4 @@ planner:
     half_width: 0.5
 
   srv:
-    polyline_position: polyline_position
+    polyline_position: /polyline_position

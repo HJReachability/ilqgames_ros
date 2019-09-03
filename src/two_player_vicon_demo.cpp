@@ -127,7 +127,7 @@ TwoPlayerViconDemo::TwoPlayerViconDemo(const ros::NodeHandle& n)
   PlayerCost p1_cost, p2_cost;
 
   // Stay in lanes.
-  const Polyline2 lane1({Point2(-100.0, -100.0), Point2(100.0, 100.0)});
+  const Polyline2 lane1({Point2(-748.684, 2322.067), Point2(0., 0.0), Point2(512.94, -1590.75)});
 
   const std::shared_ptr<QuadraticPolyline2Cost> p1_lane_cost(
       new QuadraticPolyline2Cost(kLaneCostWeight, lane1, {kP1XIdx, kP1YIdx},

@@ -61,6 +61,7 @@
 #include <ilqgames/utils/types.h>
 
 #include <darpa_msgs/Polyline.h>
+#include <std_msgs/Empty.h>
 #include <ilqgames_ros/two_player_boeing_demo.h>
 
 #include <glog/logging.h>
@@ -234,10 +235,10 @@ void TwoPlayerBoeingDemo::LoadParameters(const ros::NodeHandle& n) {
   // Get lane position.
   std::string lane_srv_name;
   CHECK(nl.getParam("srv/polyline_position", lane_srv_name));
-  ros::service::waitForService(lane_srv_name);
   ros::ServiceClient lane_srv =
-      nl.serviceClient<darpa_msgs::Polyline>(lane_srv_name.c_str());
-
+    nl.serviceClient<darpa_msgs::Polyline>(lane_srv_name.c_str());
+  lane_srv.waitForExistence();
+  
   darpa_msgs::Polyline srv;
   CHECK(lane_srv.call(srv));
   CHECK_EQ(srv.response.x_positions.size(), srv.response.y_positions.size());

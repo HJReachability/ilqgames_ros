@@ -1,17 +1,17 @@
 planner:
   goals:
     p1:
-      x: 3.0
-      y: 3.0
+      x: 0.0 
+      y: 0.0
     p2:
-      x: 3.0
-      y: -3.0
+      x: -748.0
+      y: 2322.0 
 
   speed:
     min: 0.1
-    max: 0.2
-    nominal: 0.5
-    dubins: 0.5
+    max: 20.0 
+    nominal: 15.0 
+    dubins: 15.0
 
   weight:
     u:
@@ -23,14 +23,14 @@ planner:
         max: 100.0
         nominal: 0.0
       lane:
-        center: 50.0
-        boundary: 100.0
+        center: 0.0
+        boundary: 10.0
       proximity:
         p1: 1.0
         p2: 1.0
 
   proximity:
-    min: 2.0
+    min: 20.0
 
   lane:
-    half_width: 0.5
+    half_width: 30.0
