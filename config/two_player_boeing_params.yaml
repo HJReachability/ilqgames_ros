@@ -15,7 +15,7 @@ ilqgame_planner:
   viz:
     traj: /viz/traj
 
-  replanning_interval: 0.05
+  replanning_interval: 0.1
 
   # goals:
   #   p1:

@@ -243,13 +243,15 @@ void RecedingHorizonPlanner::Plan() {
   if (is_first_timer_callback_) {
     ROS_INFO("First plan");
     problem_->ResetInitialTime(t);
+    problem_->ResetInitialState(x0);
     warm_start_dt = ilqgames::constants::kSmallNumber;
     planner_runtime = std::numeric_limits<double>::infinity();
     is_first_timer_callback_ = false;
+  } else {
+    // Set up next receding horizon problem and solve.
+    problem_->SetUpNextRecedingHorizon(x0, t, warm_start_dt);
   }
 
-  // Set up next receding horizon problem and solve.
-  problem_->SetUpNextRecedingHorizon(x0, t, warm_start_dt);
   const ros::Time solve_start_time = ros::Time::now();
   const auto log = problem_->Solve(planner_runtime);
   //  const auto log = problem_->Solve(0.1);
@@ -260,19 +262,23 @@ void RecedingHorizonPlanner::Plan() {
   if (!solution_splicer_.get())
     solution_splicer_.reset(new SolutionSplicer(*log));
   else {
-    // solution_splicer_->Splice(*log, ros::Time::now().toSec());
-    //    solution_splicer_->Splice(*log, ros::Time::now().toSec());
-        // solution_splicer_->Splice(*log, log->InitialTime() - ilqgames::constants::kSmallNumber);
+    constexpr double kMaxLagTime = 5.0;
+    const double splice_time =
+        std::max(solution_splicer_->CurrentOperatingPoint().t0,
+                 ros::Time::now().toSec() - kMaxLagTime);
+    solution_splicer_->Splice(*log, splice_time);
+    //   solution_splicer_->Splice(*log, ros::Time::now().toSec());
+    // solution_splicer_->Splice(*log, log->InitialTime() -
+    // ilqgames::constants::kSmallNumber);
   }
 
   // Overwrite problem with spliced solution.
-  // problem_->OverwriteSolution(solution_splicer_->CurrentOperatingPoint(),
-  //                             solution_splicer_->CurrentStrategies());
+  problem_->OverwriteSolution(solution_splicer_->CurrentOperatingPoint(),
+                              solution_splicer_->CurrentStrategies());
 
   // Pack into ROS msg.
-  //  const auto& traj = solution_splicer_->CurrentOperatingPoint();
-  const auto& traj = problem_->CurrentOperatingPoint();
-
+  const auto& traj = solution_splicer_->CurrentOperatingPoint();
+  // const auto& traj = problem_->CurrentOperatingPoint();
 
   darpa_msgs::EgoTrajectory msg;
   for (size_t ii = 0; ii < traj.xs.size(); ii++) {

@@ -52,7 +52,7 @@ endif()
 
 set(ILQGAMES_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/../../external/install_isolated/include/ilqgames)
 
-add_definitions(-DILQGAMES_ROS_LOG_DIR="${CMAKE_SOURCE_DIR}/logs/")
+add_definitions(-DILQGAMES_ROS_LOG_DIR="${CMAKE_SOURCE_DIR}/ilqgames_ros/logs/")
 
 include_directories(
   include
