@@ -73,16 +73,19 @@ class TwoPlayerBoeingDemo : public Problem {
   float kMaxV, kMinV, kNominalV, kDubinsV;
 
   // Control cost weights.
-  float kACostWeight, kOmegaCostWeight;
+  float kP1AccelCostWeight, kP1DecelCostWeight, kP1OmegaCostWeight,
+      kP2OmegaCostWeight;
 
   // Speed and goal weights.
-  float kMaxVCostWeight, kNominalVCostWeight, kGoalCostWeight;
+  float kMaxVCostWeight, kNominalVCostWeight, kP1GoalCostWeight,
+      kP2GoalCostWeight;
 
   // Lane weights.
   float kLaneHalfWidth, kLaneCostWeight, kLaneBoundaryCostWeight;
 
   // Proximity weights.
-  float kMinProximity, kP1ProximityCostWeight, kP2ProximityCostWeight;
+  float kP1AvoidanceMargin, kP2AvoidanceMargin, kP1ProximityCostWeight,
+      kP2ProximityCostWeight;
 
   // Lane position.
   std::vector<Point2> lane_positions_;

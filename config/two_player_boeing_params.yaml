@@ -13,7 +13,7 @@ ilqgame_planner:
         - OtherState
 
   viz:
-    traj: /viz/traj
+    traj: /viz/ilq_traj
 
   replanning_interval: 0.1
 
@@ -27,28 +27,36 @@ ilqgame_planner:
 
   speed:
     min: 1.0
-    max: 5.0
-    nominal: 4.0
+    max: 4.0
+    nominal: 3.0
     dubins: 4.0
 
   weight:
-    u:
-      accel: 5.0
-      omega: 500.0
-    x:
-      goal: 0.1
-      v:
-        max: 1000.0
-        nominal: 0.1
-      lane:
-        center: 50.0
-        boundary: 100.0
-      proximity:
-        p1: 10.0
-        p2: 10.0
+    ego:
+      u:
+        accel: 5.0
+        decel: 1.0
+        omega: 50000.0
+      x:
+        goal: 0.1
+        proximity: 10.0
+        v:
+          max: 1000.0
+          nominal: 10.0
+        lane:
+          center: 50.0
+          boundary: 100.0
 
-  proximity:
-    min: 20.0
+    other:
+      u:
+        omega: 50000.0
+      x:
+        goal: 0.1
+        proximity: 10.0
+
+  avoidance_margin:
+    ego: 20.0
+    other: 20.0
 
   lane:
     half_width: 10.0

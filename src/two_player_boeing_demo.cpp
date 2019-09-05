@@ -61,8 +61,8 @@
 #include <ilqgames/utils/types.h>
 
 #include <darpa_msgs/Polyline.h>
-#include <std_msgs/Empty.h>
 #include <ilqgames_ros/two_player_boeing_demo.h>
+#include <std_msgs/Empty.h>
 
 #include <glog/logging.h>
 #include <math.h>
@@ -160,32 +160,35 @@ TwoPlayerBoeingDemo::TwoPlayerBoeingDemo(const ros::NodeHandle& n)
 
   // Penalize control effort.
   const auto p1_omega_cost = std::make_shared<QuadraticCost>(
-      kOmegaCostWeight, kP1OmegaIdx, 0.0, "Steering");
-  const auto p1_a_cost = std::make_shared<QuadraticCost>(kACostWeight, kP1AIdx,
-                                                         0.0, "Acceleration");
+      kP1OmegaCostWeight, kP1OmegaIdx, 0.0, "Steering");
+  const auto p1_accel_cost = std::make_shared<SemiquadraticCost>(
+      kP1AccelCostWeight, kP1AIdx, 0.0, kOrientedRight, "Acceleration");
+  const auto p1_decel_cost = std::make_shared<SemiquadraticCost>(
+      kP1DecelCostWeight, kP1AIdx, 0.0, !kOrientedRight, "Deceleration");
   p1_cost.AddControlCost(0, p1_omega_cost);
-  p1_cost.AddControlCost(0, p1_a_cost);
+  p1_cost.AddControlCost(0, p1_accel_cost);
+  p1_cost.AddControlCost(0, p1_decel_cost);
 
   const auto p2_omega_cost = std::make_shared<QuadraticCost>(
-      kOmegaCostWeight, kP2OmegaIdx, 0.0, "Steering");
+      kP2OmegaCostWeight, kP2OmegaIdx, 0.0, "Steering");
   p2_cost.AddControlCost(1, p2_omega_cost);
 
   // Goal costs.
   constexpr float kFinalTimeWindow = 0.5;  // s
   const auto p1_goalx_cost = std::make_shared<FinalTimeCost>(
-      std::make_shared<QuadraticCost>(kGoalCostWeight, kP1XIdx, kP1GoalX),
+      std::make_shared<QuadraticCost>(kP1GoalCostWeight, kP1XIdx, kP1GoalX),
       kTimeHorizon - kFinalTimeWindow, "GoalX");
   const auto p1_goaly_cost = std::make_shared<FinalTimeCost>(
-      std::make_shared<QuadraticCost>(kGoalCostWeight, kP1YIdx, kP1GoalY),
+      std::make_shared<QuadraticCost>(kP1GoalCostWeight, kP1YIdx, kP1GoalY),
       kTimeHorizon - kFinalTimeWindow, "GoalY");
   p1_cost.AddStateCost(p1_goalx_cost);
   p1_cost.AddStateCost(p1_goaly_cost);
 
   const auto p2_goalx_cost = std::make_shared<FinalTimeCost>(
-      std::make_shared<QuadraticCost>(kGoalCostWeight, kP2XIdx, kP2GoalX),
+      std::make_shared<QuadraticCost>(kP2GoalCostWeight, kP2XIdx, kP2GoalX),
       kTimeHorizon - kFinalTimeWindow, "GoalX");
   const auto p2_goaly_cost = std::make_shared<FinalTimeCost>(
-      std::make_shared<QuadraticCost>(kGoalCostWeight, kP2YIdx, kP2GoalY),
+      std::make_shared<QuadraticCost>(kP2GoalCostWeight, kP2YIdx, kP2GoalY),
       kTimeHorizon - kFinalTimeWindow, "GoalY");
   p2_cost.AddStateCost(p2_goalx_cost);
   p2_cost.AddStateCost(p2_goaly_cost);
@@ -193,12 +196,12 @@ TwoPlayerBoeingDemo::TwoPlayerBoeingDemo(const ros::NodeHandle& n)
   // Pairwise proximity costs.
   const std::shared_ptr<ProximityCost> p1p2_proximity_cost(
       new ProximityCost(kP1ProximityCostWeight, {kP1XIdx, kP1YIdx},
-                        {kP2XIdx, kP2YIdx}, kMinProximity, "ProximityP2"));
+                        {kP2XIdx, kP2YIdx}, kP1AvoidanceMargin, "ProximityP2"));
   p1_cost.AddStateCost(p1p2_proximity_cost);
 
   const std::shared_ptr<ProximityCost> p2p1_proximity_cost(
       new ProximityCost(kP2ProximityCostWeight, {kP2XIdx, kP2YIdx},
-                        {kP1XIdx, kP1YIdx}, kMinProximity, "ProximityP1"));
+                        {kP1XIdx, kP1YIdx}, kP2AvoidanceMargin, "ProximityP1"));
   p2_cost.AddStateCost(p2p1_proximity_cost);
 
   // Set up solver.
@@ -219,26 +222,31 @@ void TwoPlayerBoeingDemo::LoadParameters(const ros::NodeHandle& n) {
   CHECK(nl.getParam("speed/nominal", kNominalV));
   CHECK(nl.getParam("speed/dubins", kDubinsV));
 
-  CHECK(nl.getParam("weight/u/accel", kACostWeight));
-  CHECK(nl.getParam("weight/u/omega", kOmegaCostWeight));
-  CHECK(nl.getParam("weight/x/v/max", kMaxVCostWeight));
-  CHECK(nl.getParam("weight/x/v/nominal", kNominalVCostWeight));
-  CHECK(nl.getParam("weight/x/goal", kGoalCostWeight));
-  CHECK(nl.getParam("weight/x/lane/center", kLaneCostWeight));
-  CHECK(nl.getParam("weight/x/lane/boundary", kLaneBoundaryCostWeight));
-  CHECK(nl.getParam("weight/x/proximity/p1", kP1ProximityCostWeight));
-  CHECK(nl.getParam("weight/x/proximity/p2", kP2ProximityCostWeight));
+  CHECK(nl.getParam("weight/ego/u/accel", kP1AccelCostWeight));
+  CHECK(nl.getParam("weight/ego/u/decel", kP1DecelCostWeight));
+  CHECK(nl.getParam("weight/ego/u/omega", kP1OmegaCostWeight));
+  CHECK(nl.getParam("weight/ego/x/v/max", kMaxVCostWeight));
+  CHECK(nl.getParam("weight/ego/x/v/nominal", kNominalVCostWeight));
+  CHECK(nl.getParam("weight/ego/x/goal", kP1GoalCostWeight));
+  CHECK(nl.getParam("weight/ego/x/lane/center", kLaneCostWeight));
+  CHECK(nl.getParam("weight/ego/x/lane/boundary", kLaneBoundaryCostWeight));
+  CHECK(nl.getParam("weight/ego/x/proximity", kP1ProximityCostWeight));
 
-  CHECK(nl.getParam("proximity/min", kMinProximity));
+  CHECK(nl.getParam("weight/other/u/omega", kP2OmegaCostWeight));
+  CHECK(nl.getParam("weight/other/x/goal", kP2GoalCostWeight));
+  CHECK(nl.getParam("weight/other/x/proximity", kP2ProximityCostWeight));
+
+  CHECK(nl.getParam("avoidance_margin/ego", kP1AvoidanceMargin));
+  CHECK(nl.getParam("avoidance_margin/other", kP2AvoidanceMargin));
   CHECK(nl.getParam("lane/half_width", kLaneHalfWidth));
 
   // Get lane position.
   std::string lane_srv_name;
   CHECK(nl.getParam("srv/polyline_position", lane_srv_name));
   ros::ServiceClient lane_srv =
-    nl.serviceClient<darpa_msgs::Polyline>(lane_srv_name.c_str());
+      nl.serviceClient<darpa_msgs::Polyline>(lane_srv_name.c_str());
   lane_srv.waitForExistence();
-  
+
   darpa_msgs::Polyline srv;
   CHECK(lane_srv.call(srv));
   CHECK_EQ(srv.response.x_positions.size(), srv.response.y_positions.size());

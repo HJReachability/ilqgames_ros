@@ -255,24 +255,14 @@ void RecedingHorizonPlanner::Plan() {
 
   const ros::Time solve_start_time = ros::Time::now();
   const auto log = problem_->Solve(planner_runtime);
-  //  const auto log = problem_->Solve(0.1);
   ROS_INFO_STREAM(
       "planning time: " << (ros::Time::now() - solve_start_time).toSec());
 
   // Splice in new solution. Handle first time through separately.
   if (!solution_splicer_.get())
     solution_splicer_.reset(new SolutionSplicer(*log));
-  else {
-    // constexpr double kMaxLagTime = 5.0;
-    // const double splice_time =
-    //     std::max(solution_splicer_->CurrentOperatingPoint().t0,
-    //              ros::Time::now().toSec() - kMaxLagTime);
-    // solution_splicer_->Splice(*log, splice_time);
+  else
     solution_splicer_->Splice(*log, x0, problem_->Solver().Dynamics());
-    //   solution_splicer_->Splice(*log, ros::Time::now().toSec());
-    // solution_splicer_->Splice(*log, log->InitialTime() -
-    // ilqgames::constants::kSmallNumber);
-  }
 
   // Overwrite problem with spliced solution.
   problem_->OverwriteSolution(solution_splicer_->CurrentOperatingPoint(),
@@ -280,7 +270,6 @@ void RecedingHorizonPlanner::Plan() {
 
   // Pack into ROS msg.
   const auto& traj = solution_splicer_->CurrentOperatingPoint();
-  // const auto& traj = problem_->CurrentOperatingPoint();
 
   darpa_msgs::EgoTrajectory msg;
   for (size_t ii = 0; ii < traj.xs.size(); ii++) {
@@ -342,8 +331,6 @@ void RecedingHorizonPlanner::Plan() {
       p.x = traj.xs[kk](dims_so_far);
       p.y = traj.xs[kk](dims_so_far + 1);
       p.z = 0.0;
-
-      // std::cout << "Point: " << p.x << ", " << p.y << std::endl;
 
       dims_so_far += (ii == 0) ? SinglePlayerUnicycle4D::kNumXDims
                                : SinglePlayerDubinsCar::kNumXDims;
