@@ -250,6 +250,7 @@ void RecedingHorizonPlanner::Plan() {
   } else {
     // Set up next receding horizon problem and solve.
     problem_->SetUpNextRecedingHorizon(x0, t, warm_start_dt);
+    //    problem_->SetUpNextRecedingHorizon(x0, t, 0.0);
   }
 
   const ros::Time solve_start_time = ros::Time::now();
@@ -262,11 +263,12 @@ void RecedingHorizonPlanner::Plan() {
   if (!solution_splicer_.get())
     solution_splicer_.reset(new SolutionSplicer(*log));
   else {
-    constexpr double kMaxLagTime = 5.0;
-    const double splice_time =
-        std::max(solution_splicer_->CurrentOperatingPoint().t0,
-                 ros::Time::now().toSec() - kMaxLagTime);
-    solution_splicer_->Splice(*log, splice_time);
+    // constexpr double kMaxLagTime = 5.0;
+    // const double splice_time =
+    //     std::max(solution_splicer_->CurrentOperatingPoint().t0,
+    //              ros::Time::now().toSec() - kMaxLagTime);
+    // solution_splicer_->Splice(*log, splice_time);
+    solution_splicer_->Splice(*log, x0, problem_->Solver().Dynamics());
     //   solution_splicer_->Splice(*log, ros::Time::now().toSec());
     // solution_splicer_->Splice(*log, log->InitialTime() -
     // ilqgames::constants::kSmallNumber);

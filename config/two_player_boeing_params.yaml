@@ -26,8 +26,8 @@ ilqgame_planner:
   #     y: -3.0
 
   speed:
-    min: 0.1
-    max: 6.5
+    min: 1.0
+    max: 5.0
     nominal: 4.0
     dubins: 4.0
 
@@ -36,10 +36,10 @@ ilqgame_planner:
       accel: 5.0
       omega: 500.0
     x:
-      goal: 1.0
+      goal: 0.1
       v:
-        max: 100.0
-        nominal: 1.0
+        max: 1000.0
+        nominal: 0.1
       lane:
         center: 50.0
         boundary: 100.0
