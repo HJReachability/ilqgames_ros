@@ -209,10 +209,10 @@ TwoPlayerBoeingDemo::TwoPlayerBoeingDemo(const ros::NodeHandle& n)
 void TwoPlayerBoeingDemo::LoadParameters(const ros::NodeHandle& n) {
   ros::NodeHandle nl(n);
 
-  CHECK(nl.getParam("goals/p1/x", kP1GoalX));
-  CHECK(nl.getParam("goals/p1/y", kP1GoalY));
-  CHECK(nl.getParam("goals/p2/x", kP2GoalX));
-  CHECK(nl.getParam("goals/p2/y", kP2GoalY));
+  // CHECK(nl.getParam("goals/p1/x", kP1GoalX));
+  // CHECK(nl.getParam("goals/p1/y", kP1GoalY));
+  // CHECK(nl.getParam("goals/p2/x", kP2GoalX));
+  // CHECK(nl.getParam("goals/p2/y", kP2GoalY));
 
   CHECK(nl.getParam("speed/min", kMinV));
   CHECK(nl.getParam("speed/max", kMaxV));
@@ -246,6 +246,13 @@ void TwoPlayerBoeingDemo::LoadParameters(const ros::NodeHandle& n) {
     lane_positions_.emplace_back(srv.response.x_positions[ii],
                                  srv.response.y_positions[ii]);
   }
+
+  // Set goal to be final point along trajectory.
+  // HACK! Set to be the same for all players.
+  kP1GoalX = lane_positions_.back().x();
+  kP1GoalY = lane_positions_.back().y();
+  kP2GoalX = kP1GoalX;
+  kP2GoalY = kP1GoalY;
 }
 
 }  // namespace ilqgames_ros

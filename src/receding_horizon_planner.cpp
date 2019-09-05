@@ -190,6 +190,8 @@ void RecedingHorizonPlanner::StateCallback(
   x(2) = msg->theta;
   x(3) = msg->v;
 
+  //  std::cout << *msg << std::endl;
+
   if (is_first_timer_callback_ && ReceivedAllStateUpdates()) {
     Plan();
     is_first_timer_callback_ = false;
@@ -212,8 +214,8 @@ void RecedingHorizonPlanner::StateCallback(
     timer_.start();
   }
 
-  for (const auto& state : current_states_)
-    std::cout << state.transpose() << std::endl;
+  // for (const auto& state : current_states_)
+  //   std::cout << state.transpose() << std::endl;
 }
 
 bool RecedingHorizonPlanner::ReceivedAllStateUpdates() const {
@@ -237,17 +239,20 @@ void RecedingHorizonPlanner::Plan() {
 
   // First timer callback, reset initial time.
   double planner_runtime = replanning_interval_;
+  double warm_start_dt = replanning_interval_;
   if (is_first_timer_callback_) {
     ROS_INFO("First plan");
     problem_->ResetInitialTime(t);
-    planner_runtime = ilqgames::constants::kSmallNumber;
+    warm_start_dt = ilqgames::constants::kSmallNumber;
+    planner_runtime = std::numeric_limits<double>::infinity();
     is_first_timer_callback_ = false;
   }
 
   // Set up next receding horizon problem and solve.
-  problem_->SetUpNextRecedingHorizon(x0, t, planner_runtime);
+  problem_->SetUpNextRecedingHorizon(x0, t, warm_start_dt);
   const ros::Time solve_start_time = ros::Time::now();
-  const auto log = problem_->Solve(replanning_interval_ - 0.05);
+  const auto log = problem_->Solve(planner_runtime);
+  //  const auto log = problem_->Solve(0.1);
   ROS_INFO_STREAM(
       "planning time: " << (ros::Time::now() - solve_start_time).toSec());
 
@@ -256,15 +261,18 @@ void RecedingHorizonPlanner::Plan() {
     solution_splicer_.reset(new SolutionSplicer(*log));
   else {
     // solution_splicer_->Splice(*log, ros::Time::now().toSec());
-    solution_splicer_->Splice(*log, ros::Time::now().toSec());
+    //    solution_splicer_->Splice(*log, ros::Time::now().toSec());
+        // solution_splicer_->Splice(*log, log->InitialTime() - ilqgames::constants::kSmallNumber);
   }
 
   // Overwrite problem with spliced solution.
-  problem_->OverwriteSolution(solution_splicer_->CurrentOperatingPoint(),
-                              solution_splicer_->CurrentStrategies());
+  // problem_->OverwriteSolution(solution_splicer_->CurrentOperatingPoint(),
+  //                             solution_splicer_->CurrentStrategies());
 
   // Pack into ROS msg.
-  const auto& traj = solution_splicer_->CurrentOperatingPoint();
+  //  const auto& traj = solution_splicer_->CurrentOperatingPoint();
+  const auto& traj = problem_->CurrentOperatingPoint();
+
 
   darpa_msgs::EgoTrajectory msg;
   for (size_t ii = 0; ii < traj.xs.size(); ii++) {
@@ -300,9 +308,9 @@ void RecedingHorizonPlanner::Plan() {
     s.id = ii;
     s.type = visualization_msgs::Marker::SPHERE_LIST;
     s.action = visualization_msgs::Marker::ADD;
-    s.scale.x = 0.2;
-    s.scale.y = 0.2;
-    s.scale.z = 0.2;
+    s.scale.x = 2.0;
+    s.scale.y = 2.0;
+    s.scale.z = 2.0;
     s.color = c;
 
     l.header.frame_id = fixed_frame_.c_str();
@@ -327,7 +335,7 @@ void RecedingHorizonPlanner::Plan() {
       p.y = traj.xs[kk](dims_so_far + 1);
       p.z = 0.0;
 
-      std::cout << "Point: " << p.x << ", " << p.y << std::endl;
+      // std::cout << "Point: " << p.x << ", " << p.y << std::endl;
 
       dims_so_far += (ii == 0) ? SinglePlayerUnicycle4D::kNumXDims
                                : SinglePlayerDubinsCar::kNumXDims;
