@@ -34,8 +34,8 @@ ilqgame_planner:
   weight:
     ego:
       u:
-        accel: 5.0
-        decel: 1.0
+        accel: 9000.0
+        decel: 9000.0
         omega: 50000.0
       x:
         goal: 0.1
