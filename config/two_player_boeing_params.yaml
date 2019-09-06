@@ -39,7 +39,7 @@ ilqgame_planner:
         omega: 50000.0
       x:
         goal: 0.1
-        proximity: 10.0
+        proximity: 0.0
         v:
           max: 1000.0
           nominal: 10.0
@@ -52,14 +52,14 @@ ilqgame_planner:
         omega: 50000.0
       x:
         goal: 0.1
-        proximity: 10.0
+        proximity: 0.0
 
   avoidance_margin:
     ego: 20.0
     other: 20.0
 
   lane:
-    half_width: 10.0
+    half_width: 3.0
 
   srv:
     polyline_position: /polyline_position
