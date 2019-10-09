@@ -46,6 +46,7 @@
 #include <ilqgames/cost/nominal_path_length_cost.h>
 #include <ilqgames/cost/proximity_cost.h>
 #include <ilqgames/cost/quadratic_cost.h>
+#include <ilqgames/cost/quadratic_difference_cost.h>
 #include <ilqgames/cost/quadratic_polyline2_cost.h>
 #include <ilqgames/cost/semiquadratic_cost.h>
 #include <ilqgames/cost/semiquadratic_polyline2_cost.h>
@@ -109,7 +110,8 @@ TwoPlayerBoeingDemo::TwoPlayerBoeingDemo(const ros::NodeHandle& n)
   // Create dynamics.
   const std::shared_ptr<ConcatenatedDynamicalSystem> dynamics(
       new ConcatenatedDynamicalSystem({
-          std::make_shared<P1>(), std::make_shared<P2>(kDubinsV),
+          std::make_shared<P1>(),
+          std::make_shared<P2>(kDubinsV),
       }));
 
   // Set up initial state.
@@ -184,15 +186,6 @@ TwoPlayerBoeingDemo::TwoPlayerBoeingDemo(const ros::NodeHandle& n)
   p1_cost.AddStateCost(p1_goalx_cost);
   p1_cost.AddStateCost(p1_goaly_cost);
 
-  const auto p2_goalx_cost = std::make_shared<FinalTimeCost>(
-      std::make_shared<QuadraticCost>(kP2GoalCostWeight, kP2XIdx, kP2GoalX),
-      kTimeHorizon - kFinalTimeWindow, "GoalX");
-  const auto p2_goaly_cost = std::make_shared<FinalTimeCost>(
-      std::make_shared<QuadraticCost>(kP2GoalCostWeight, kP2YIdx, kP2GoalY),
-      kTimeHorizon - kFinalTimeWindow, "GoalY");
-  p2_cost.AddStateCost(p2_goalx_cost);
-  p2_cost.AddStateCost(p2_goaly_cost);
-
   // Pairwise proximity costs.
   const std::shared_ptr<ProximityCost> p1p2_proximity_cost(
       new ProximityCost(kP1ProximityCostWeight, {kP1XIdx, kP1YIdx},
@@ -200,8 +193,8 @@ TwoPlayerBoeingDemo::TwoPlayerBoeingDemo(const ros::NodeHandle& n)
   p1_cost.AddStateCost(p1p2_proximity_cost);
 
   const std::shared_ptr<ProximityCost> p2p1_proximity_cost(
-      new ProximityCost(kP2ProximityCostWeight, {kP2XIdx, kP2YIdx},
-                        {kP1XIdx, kP1YIdx}, kP2AvoidanceMargin, "ProximityP1"));
+      new QuadraticDifferenceCost(kP2ProximityCostWeight, {kP2XIdx, kP2YIdx},
+                                  {kP1XIdx, kP1YIdx}, "ProximityP1"));
   p2_cost.AddStateCost(p2p1_proximity_cost);
 
   // Set up solver.
@@ -233,11 +226,9 @@ void TwoPlayerBoeingDemo::LoadParameters(const ros::NodeHandle& n) {
   CHECK(nl.getParam("weight/ego/x/proximity", kP1ProximityCostWeight));
 
   CHECK(nl.getParam("weight/other/u/omega", kP2OmegaCostWeight));
-  CHECK(nl.getParam("weight/other/x/goal", kP2GoalCostWeight));
   CHECK(nl.getParam("weight/other/x/proximity", kP2ProximityCostWeight));
 
   CHECK(nl.getParam("avoidance_margin/ego", kP1AvoidanceMargin));
-  CHECK(nl.getParam("avoidance_margin/other", kP2AvoidanceMargin));
   CHECK(nl.getParam("lane/half_width", kLaneHalfWidth));
 
   // Get lane position.
@@ -256,11 +247,8 @@ void TwoPlayerBoeingDemo::LoadParameters(const ros::NodeHandle& n) {
   }
 
   // Set goal to be final point along trajectory.
-  // HACK! Set to be the same for all players.
   kP1GoalX = lane_positions_.back().x();
   kP1GoalY = lane_positions_.back().y();
-  kP2GoalX = kP1GoalX;
-  kP2GoalY = kP1GoalY;
 }
 
 }  // namespace ilqgames_ros
