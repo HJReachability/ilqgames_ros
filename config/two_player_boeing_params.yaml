@@ -3,17 +3,17 @@ ilqgame_planner:
     fixed: world
 
   topic:
-    traj: /ilq_traj
+    traj: /ucb/ilq_traj
     state:
       names:
-        - /ego
-        - /other
+        - /ucb/ego
+        - /ucb/other
       types:
         - EgoState
         - OtherState
 
   viz:
-    traj: /viz/ilq_traj
+    traj: /ucb/viz/ilq_traj
 
   replanning_interval: 0.1
 

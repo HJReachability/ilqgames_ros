@@ -192,7 +192,7 @@ TwoPlayerBoeingDemo::TwoPlayerBoeingDemo(const ros::NodeHandle& n)
                         {kP2XIdx, kP2YIdx}, kP1AvoidanceMargin, "ProximityP2"));
   p1_cost.AddStateCost(p1p2_proximity_cost);
 
-  const std::shared_ptr<ProximityCost> p2p1_proximity_cost(
+  const std::shared_ptr<QuadraticDifferenceCost> p2p1_proximity_cost(
       new QuadraticDifferenceCost(kP2ProximityCostWeight, {kP2XIdx, kP2YIdx},
                                   {kP1XIdx, kP1YIdx}, "ProximityP1"));
   p2_cost.AddStateCost(p2p1_proximity_cost);
