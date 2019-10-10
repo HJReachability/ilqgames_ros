@@ -239,8 +239,17 @@ void TwoPlayerBoeingDemo::LoadParameters(const ros::NodeHandle& n) {
   lane_srv.waitForExistence();
 
   darpa_msgs::Polyline srv;
-  CHECK(lane_srv.call(srv));
-  CHECK_EQ(srv.response.x_positions.size(), srv.response.y_positions.size());
+  while (srv.response.x_positions.empty()) {
+    CHECK(lane_srv.call(srv));
+    CHECK_EQ(srv.response.x_positions.size(), srv.response.y_positions.size());
+
+    // If empty response, pause before continuing.
+    if (srv.response.x_positions.empty()) {
+      constexpr double kPauseTime = 1.0;
+      ros::Duration(kPauseTime).sleep();
+    }
+  }
+
   for (size_t ii = 0; ii < srv.response.x_positions.size(); ii++) {
     lane_positions_.emplace_back(srv.response.x_positions[ii],
                                  srv.response.y_positions[ii]);
