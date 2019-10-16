@@ -110,8 +110,7 @@ TwoPlayerBoeingDemo::TwoPlayerBoeingDemo(const ros::NodeHandle& n)
   // Create dynamics.
   const std::shared_ptr<ConcatenatedDynamicalSystem> dynamics(
       new ConcatenatedDynamicalSystem({
-          std::make_shared<P1>(),
-          std::make_shared<P2>(kDubinsV),
+          std::make_shared<P1>(), std::make_shared<P2>(kDubinsV),
       }));
 
   // Set up initial state.
@@ -176,15 +175,14 @@ TwoPlayerBoeingDemo::TwoPlayerBoeingDemo(const ros::NodeHandle& n)
   p2_cost.AddControlCost(1, p2_omega_cost);
 
   // Goal costs.
-  constexpr float kFinalTimeWindow = 0.5;  // s
-  const auto p1_goalx_cost = std::make_shared<FinalTimeCost>(
+  p1_goalx_cost_ = std::make_shared<FinalTimeCost>(
       std::make_shared<QuadraticCost>(kP1GoalCostWeight, kP1XIdx, kP1GoalX),
       kTimeHorizon - kFinalTimeWindow, "GoalX");
-  const auto p1_goaly_cost = std::make_shared<FinalTimeCost>(
+  p1_goaly_cost_ = std::make_shared<FinalTimeCost>(
       std::make_shared<QuadraticCost>(kP1GoalCostWeight, kP1YIdx, kP1GoalY),
       kTimeHorizon - kFinalTimeWindow, "GoalY");
-  p1_cost.AddStateCost(p1_goalx_cost);
-  p1_cost.AddStateCost(p1_goaly_cost);
+  p1_cost.AddStateCost(p1_goalx_cost_);
+  p1_cost.AddStateCost(p1_goaly_cost_);
 
   // Pairwise proximity costs.
   const std::shared_ptr<ProximityCost> p1p2_proximity_cost(
@@ -192,14 +190,35 @@ TwoPlayerBoeingDemo::TwoPlayerBoeingDemo(const ros::NodeHandle& n)
                         {kP2XIdx, kP2YIdx}, kP1AvoidanceMargin, "ProximityP2"));
   p1_cost.AddStateCost(p1p2_proximity_cost);
 
-  const std::shared_ptr<QuadraticDifferenceCost> p2p1_proximity_cost(
-      new QuadraticDifferenceCost(kP2ProximityCostWeight, {kP2XIdx, kP2YIdx},
-                                  {kP1XIdx, kP1YIdx}, "ProximityP1"));
-  p2_cost.AddStateCost(p2p1_proximity_cost);
+  p2_proximity_cost_ = std::make_shared<FinalTimeCost>(
+      std::shared_ptr<ProximityCost>(new ProximityCost(
+          kP1ProximityCostWeight, {kP1XIdx, kP1YIdx}, {kP2XIdx, kP2YIdx},
+          kP1AvoidanceMargin, "ProximityP2")),
+      kTimeHorizon - kProximityFinalTimeWindow);
+  p1_cost.AddStateCost(p2_proximity_cost_);
+
+  // Adversarial cost.
+  p2_adversarial_cost_ = std::make_shared<InitialTimeCost>(
+      std::shared_ptr<QuadraticDifferenceCost>(new QuadraticDifferenceCost(
+          kP2ProximityCostWeight, {kP2XIdx, kP2YIdx}, {kP1XIdx, kP1YIdx},
+          "ProximityP1")),
+      kAdversarialInitialTimeWindow);
+  p2_cost.AddStateCost(p2_adversarial_cost_);
 
   // Set up solver.
   solver_.reset(new LinesearchingILQSolver(dynamics, {p1_cost, p2_cost},
                                            kTimeHorizon, kTimeStep));
+}
+
+void TwoPlayerBoeingDemo::UpdateTimeBasedCosts(Time start_time) {
+  p1_goalx_cost_->ResetThresholdTime(start_time + kTimeHorizon -
+                                     kGoalFinalTimeWindow);
+  p1_goaly_cost_->ResetThresholdTime(start_time + kTimeHorizon -
+                                     kGoalFinalTimeWindow);
+  p2_proximity_cost_->ResetThresholdTime(start_time + kTimeHorizon -
+                                         kProximityFinalTimeWindow);
+  p2_adversarial_cost_->ResetThresholdTime(start_time +
+                                           kAdversarialInitialTimeWindow);
 }
 
 void TwoPlayerBoeingDemo::LoadParameters(const ros::NodeHandle& n) {
@@ -227,9 +246,14 @@ void TwoPlayerBoeingDemo::LoadParameters(const ros::NodeHandle& n) {
 
   CHECK(nl.getParam("weight/other/u/omega", kP2OmegaCostWeight));
   CHECK(nl.getParam("weight/other/x/proximity", kP2ProximityCostWeight));
+  CHECK(nl.getParam("weight/other/x/adversarial", kP2AdversarialCostWeight));
 
   CHECK(nl.getParam("avoidance_margin/ego", kP1AvoidanceMargin));
   CHECK(nl.getParam("lane/half_width", kLaneHalfWidth));
+
+  CHECK(nl.getParam("window/goal", kGoalFinalTimeWindow));
+  CHECK(nl.getParam("window/adversarial", kAdversarialInitialTimeWindow));
+  kProximityFinalTimeWindow = kTimeHorizon - kAdversarialInitialTimeWindow;
 
   // Get lane position.
   std::string lane_srv_name;

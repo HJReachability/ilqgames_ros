@@ -43,10 +43,14 @@
 #ifndef ILQGAMES_ROS_TWO_PLAYER_BOEING_DEMO_H
 #define ILQGAMES_ROS_TWO_PLAYER_BOEING_DEMO_H
 
+#include <ilqgames/cost/final_time_cost.h>
+#include <ilqgames/cost/initial_time_cost.h>
 #include <ilqgames/solver/problem.h>
 #include <ilqgames/utils/types.h>
 
 #include <ros/ros.h>
+#include <memory>
+#include <vector>
 
 namespace ilqgames_ros {
 
@@ -56,6 +60,9 @@ class TwoPlayerBoeingDemo : public Problem {
  public:
   ~TwoPlayerBoeingDemo() {}
   TwoPlayerBoeingDemo(const ros::NodeHandle& n);
+
+  // Update time costs.
+  void UpdateTimeBasedCosts(Time start_time);
 
   // Accessors.
   const std::vector<Dimension>& XIdxs() const { return x_idxs_; }
@@ -67,7 +74,7 @@ class TwoPlayerBoeingDemo : public Problem {
   void LoadParameters(const ros::NodeHandle& n);
 
   // Goal locations.
-  float kP1GoalX, kP1GoalY, kP2GoalX, kP2GoalY;
+  float kP1GoalX, kP1GoalY;
 
   // Min/max/nominal speeds.
   float kMaxV, kMinV, kNominalV, kDubinsV;
@@ -85,7 +92,18 @@ class TwoPlayerBoeingDemo : public Problem {
 
   // Proximity weights.
   float kP1AvoidanceMargin, kP2AvoidanceMargin, kP1ProximityCostWeight,
-      kP2ProximityCostWeight;
+      kP2ProximityCostWeight, kP2AdversarialCostWeight;
+
+  // Pointers to time varying costs whos threshold times will need to be updated
+  // during operation.
+  std::shared_ptr<FinalTimeCost> p1_goalx_cost_;
+  std::shared_ptr<FinalTimeCost> p1_goaly_cost_;
+  std::shared_ptr<FinalTimeCost> p2_proximity_cost_;
+  std::shared_ptr<InitialTimeCost> p2_adversarial_cost_;
+
+  // Initial and final time windows.
+  float kGoalFinalTimeWindow, kProximityFinalTimeWindow,
+    kAdversarialInitialTimeWindow;
 
   // Lane position.
   std::vector<Point2> lane_positions_;
