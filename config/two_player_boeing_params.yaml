@@ -55,6 +55,10 @@ ilqgame_planner:
         proximity: 0.01 # HACK! Needs tuning.
         adversarial: 0.01 # HACK! Needs tuning.
 
+  window:
+    goal: 0.5
+    adversarial: 1.0
+
   avoidance_margin:
     ego: 40.0 # HACK! Needs tuning.
 #    other: 20.0
