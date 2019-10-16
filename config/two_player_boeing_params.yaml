@@ -53,6 +53,7 @@ ilqgame_planner:
       x:
 #        goal: 0.1
         proximity: 0.01 # HACK! Needs tuning.
+        adversarial: 0.01 # HACK! Needs tuning.
 
   avoidance_margin:
     ego: 40.0 # HACK! Needs tuning.
