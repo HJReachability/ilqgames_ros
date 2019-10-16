@@ -254,7 +254,8 @@ void RecedingHorizonPlanner::Plan() {
   }
 
   // Reset time thresholds for initial/final time costs.
-  const Time problem_start_time = problem_->CurrentOperatingPoint().t0;
+  const ilqgames::Time problem_start_time =
+      problem_->CurrentOperatingPoint().t0;
   problem_->UpdateTimeBasedCosts(problem_start_time);
 
   // Solve the problem.

@@ -45,6 +45,7 @@
 
 #include <ilqgames/solver/problem.h>
 #include <ilqgames/solver/solution_splicer.h>
+#include <ilqgames_ros/two_player_boeing_demo.h>
 
 #include <darpa_msgs/EgoState.h>
 #include <darpa_msgs/OtherState.h>
@@ -92,7 +93,7 @@ class RecedingHorizonPlanner {
   void Plan();
 
   // Planning problem.
-  std::shared_ptr<Problem> problem_;
+  std::shared_ptr<TwoPlayerBoeingDemo> problem_;
 
   // Solution splicer to keep track of solution over multiple receding horizon
   // solver invocations.
