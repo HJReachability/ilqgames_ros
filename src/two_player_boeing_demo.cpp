@@ -177,10 +177,10 @@ TwoPlayerBoeingDemo::TwoPlayerBoeingDemo(const ros::NodeHandle& n)
   // Goal costs.
   p1_goalx_cost_ = std::make_shared<FinalTimeCost>(
       std::make_shared<QuadraticCost>(kP1GoalCostWeight, kP1XIdx, kP1GoalX),
-      kTimeHorizon - kFinalTimeWindow, "GoalX");
+      kTimeHorizon - kGoalFinalTimeWindow, "GoalX");
   p1_goaly_cost_ = std::make_shared<FinalTimeCost>(
       std::make_shared<QuadraticCost>(kP1GoalCostWeight, kP1YIdx, kP1GoalY),
-      kTimeHorizon - kFinalTimeWindow, "GoalY");
+      kTimeHorizon - kGoalFinalTimeWindow, "GoalY");
   p1_cost.AddStateCost(p1_goalx_cost_);
   p1_cost.AddStateCost(p1_goaly_cost_);
 
