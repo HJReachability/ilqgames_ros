@@ -40,26 +40,25 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <darpa_msgs/EgoState.h>
+#include <darpa_msgs/EgoTrajectory.h>
+#include <darpa_msgs/OtherState.h>
+#include <geometry_msgs/Point.h>
+#include <glog/logging.h>
 #include <ilqgames/dynamics/single_player_dubins_car.h>
 #include <ilqgames/dynamics/single_player_unicycle_4d.h>
 #include <ilqgames/solver/problem.h>
 #include <ilqgames_ros/receding_horizon_planner.h>
-
-#include <darpa_msgs/EgoState.h>
-#include <darpa_msgs/EgoTrajectory.h>
-#include <darpa_msgs/OtherState.h>
-
-#include <geometry_msgs/Point.h>
-#include <glog/logging.h>
 #include <ros/ros.h>
 #include <visualization_msgs/Marker.h>
+
 #include <memory>
 #include <vector>
 
 namespace ilqgames_ros {
 
-using ilqgames::SinglePlayerUnicycle4D;
 using ilqgames::SinglePlayerDubinsCar;
+using ilqgames::SinglePlayerUnicycle4D;
 
 bool RecedingHorizonPlanner::Initialize(const ros::NodeHandle& n) {
   name_ = ros::names::append(n.getNamespace(), "receding_horizon_planner");
@@ -320,7 +319,7 @@ void RecedingHorizonPlanner::Plan() {
     l.header.stamp = pub_time;
     l.ns = "lines";
     l.id = ii;
-    l.type = visualization_msgs::Marker::SPHERE_LIST;
+    l.type = visualization_msgs::Marker::LINE_STRIP;
     l.action = visualization_msgs::Marker::ADD;
     l.scale.x = 0.2;
     l.scale.y = 0.2;
@@ -344,11 +343,12 @@ void RecedingHorizonPlanner::Plan() {
       spheres[ii].points.push_back(p);
       lines[ii].points.push_back(p);
     }
+  }
 
-    for (size_t ii = 0; ii < spheres.size(); ii++) {
-      traj_viz_pub_.publish(spheres[ii]);
-      traj_viz_pub_.publish(lines[ii]);
-    }
+  // Publish!
+  for (size_t ii = 0; ii < spheres.size(); ii++) {
+    traj_viz_pub_.publish(spheres[ii]);
+    traj_viz_pub_.publish(lines[ii]);
   }
 }
 

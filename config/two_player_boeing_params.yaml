@@ -29,34 +29,39 @@ ilqgame_planner:
     min: 1.0
     max: 4.0
     nominal: 3.0
-    dubins: 4.0
+    dubins: 5.0
+
+  heading:
+    other:
+      nominal: 0.0
 
   weight:
     ego:
       u:
-        accel: 9000.0
-        decel: 9000.0
-        omega: 50000.0
+        accel: 1000.0
+        decel: 200000.0
+        omega: 100000.0
       x:
-        goal: 0.1
-        proximity: 0.0
+        goal: 100.0
+        proximity: 1.0
         v:
-          max: 1000.0
-          nominal: 10.0
+          max: 100000.0
+          nominal: 10000.0
         lane:
-          center: 50.0
+          center: 0.01
           boundary: 100.0
 
     other:
       u:
-        omega: 50000.0
+        omega: 500000000.0
       x:
 #        goal: 0.1
-        proximity: 0.01 # HACK! Needs tuning.
+        proximity: 0.0 # HACK! Needs tuning.
         adversarial: 0.01 # HACK! Needs tuning.
+        heading: 1.0 # HACK! Needs tuning.
 
   window:
-    goal: 0.5
+    goal: 8.0
     adversarial: 1.0
 
   avoidance_margin:

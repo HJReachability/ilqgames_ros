@@ -41,6 +41,8 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <darpa_msgs/Polyline.h>
+#include <glog/logging.h>
 #include <ilqgames/cost/curvature_cost.h>
 #include <ilqgames/cost/final_time_cost.h>
 #include <ilqgames/cost/nominal_path_length_cost.h>
@@ -60,14 +62,11 @@
 #include <ilqgames/utils/solver_log.h>
 #include <ilqgames/utils/strategy.h>
 #include <ilqgames/utils/types.h>
-
-#include <darpa_msgs/Polyline.h>
 #include <ilqgames_ros/two_player_boeing_demo.h>
-#include <std_msgs/Empty.h>
-
-#include <glog/logging.h>
 #include <math.h>
 #include <ros/ros.h>
+#include <std_msgs/Empty.h>
+
 #include <memory>
 #include <vector>
 
@@ -110,7 +109,8 @@ TwoPlayerBoeingDemo::TwoPlayerBoeingDemo(const ros::NodeHandle& n)
   // Create dynamics.
   const std::shared_ptr<ConcatenatedDynamicalSystem> dynamics(
       new ConcatenatedDynamicalSystem({
-          std::make_shared<P1>(), std::make_shared<P2>(kDubinsV),
+          std::make_shared<P1>(),
+          std::make_shared<P2>(kDubinsV),
       }));
 
   // Set up initial state.
@@ -192,18 +192,23 @@ TwoPlayerBoeingDemo::TwoPlayerBoeingDemo(const ros::NodeHandle& n)
 
   p2_proximity_cost_ = std::make_shared<FinalTimeCost>(
       std::shared_ptr<ProximityCost>(new ProximityCost(
-          kP1ProximityCostWeight, {kP1XIdx, kP1YIdx}, {kP2XIdx, kP2YIdx},
-          kP1AvoidanceMargin, "ProximityP2")),
+          kP2ProximityCostWeight, {kP2XIdx, kP2YIdx}, {kP1XIdx, kP1YIdx},
+          kP2AvoidanceMargin, "ProximityP1")),
       kTimeHorizon - kProximityFinalTimeWindow);
-  p1_cost.AddStateCost(p2_proximity_cost_);
+  p2_cost.AddStateCost(p2_proximity_cost_);
 
   // Adversarial cost.
   p2_adversarial_cost_ = std::make_shared<InitialTimeCost>(
       std::shared_ptr<QuadraticDifferenceCost>(new QuadraticDifferenceCost(
           kP2ProximityCostWeight, {kP2XIdx, kP2YIdx}, {kP1XIdx, kP1YIdx},
-          "ProximityP1")),
+          "Adversarial")),
       kAdversarialInitialTimeWindow);
   p2_cost.AddStateCost(p2_adversarial_cost_);
+
+  // Desired heading cost for P2.
+  const auto p2_nominal_heading_cost = std::make_shared<QuadraticCost>(
+      kP2NominalHeadingCostWeight, kP2HeadingIdx, kP2NominalHeading, "Heading");
+  p2_cost.AddStateCost(p2_nominal_heading_cost);
 
   // Set up solver.
   solver_.reset(new LinesearchingILQSolver(dynamics, {p1_cost, p2_cost},
@@ -247,6 +252,9 @@ void TwoPlayerBoeingDemo::LoadParameters(const ros::NodeHandle& n) {
   CHECK(nl.getParam("weight/other/u/omega", kP2OmegaCostWeight));
   CHECK(nl.getParam("weight/other/x/proximity", kP2ProximityCostWeight));
   CHECK(nl.getParam("weight/other/x/adversarial", kP2AdversarialCostWeight));
+  CHECK(nl.getParam("weight/other/x/heading", kP2NominalHeadingCostWeight));
+
+  CHECK(nl.getParam("heading/other/nominal", kP2NominalHeading));
 
   CHECK(nl.getParam("avoidance_margin/ego", kP1AvoidanceMargin));
   CHECK(nl.getParam("lane/half_width", kLaneHalfWidth));

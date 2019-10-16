@@ -87,6 +87,9 @@ class TwoPlayerBoeingDemo : public Problem {
   float kMaxVCostWeight, kNominalVCostWeight, kP1GoalCostWeight,
       kP2GoalCostWeight;
 
+  // Heading cost.
+  float kP2NominalHeading, kP2NominalHeadingCostWeight;
+
   // Lane weights.
   float kLaneHalfWidth, kLaneCostWeight, kLaneBoundaryCostWeight;
 
