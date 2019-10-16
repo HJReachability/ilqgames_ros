@@ -65,7 +65,7 @@ using ilqgames::SolutionSplicer;
 class RecedingHorizonPlanner {
  public:
   ~RecedingHorizonPlanner() {}
-  RecedingHorizonPlanner(const std::shared_ptr<Problem>& problem)
+  RecedingHorizonPlanner(const std::shared_ptr<TwoPlayerBoeingDemo>& problem)
       : problem_(problem), initialized_(false), is_first_timer_callback_(true) {
     CHECK_NOTNULL(problem.get());
   }
