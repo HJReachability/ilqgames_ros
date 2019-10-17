@@ -257,6 +257,7 @@ void TwoPlayerBoeingDemo::LoadParameters(const ros::NodeHandle& n) {
   CHECK(nl.getParam("heading/other/nominal", kP2NominalHeading));
 
   CHECK(nl.getParam("avoidance_margin/ego", kP1AvoidanceMargin));
+  CHECK(nl.getParam("avoidance_margin/other", kP2AvoidanceMargin));
   CHECK(nl.getParam("lane/half_width", kLaneHalfWidth));
 
   CHECK(nl.getParam("window/goal", kGoalFinalTimeWindow));
