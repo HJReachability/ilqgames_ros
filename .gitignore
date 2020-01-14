@@ -18,8 +18,6 @@ cscope*
 ros/build
 ros/devel
 ros/src/CMakeLists.txt
-ros/src/ilqgames_ros
-ros/src/eyes_closed_invariance
 
 external/build_isolated
 external/devel_isolated

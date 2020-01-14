@@ -1,0 +1,11 @@
+<launch>
+  <!-- Config. -->
+  <rosparam file="$(find ilqgames_ros)/config/two_player_boeing_params.yaml" command="load" />
+
+  <!-- Planner node. -->
+  <node name="ilqgame_planner"
+        pkg="ilqgames_ros"
+        type="two_player_boeing_node"
+        output="screen"
+        required="true" />
+</launch>
