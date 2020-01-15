@@ -35,7 +35,7 @@
  */
 
 #include <ilqgames_ros/receding_horizon_planner.h>
-#include <ilqgames_ros/two_player_boeing_demo.h>
+#include <ilqgames_ros/two_player_vicon_demo.h>
 
 #include <glog/logging.h>
 #include <ros/ros.h>
@@ -50,8 +50,8 @@ int main(int argc, char** argv) {
   ros::init(argc, argv, "ilqgame_planner");
   ros::NodeHandle n("~");
 
-  auto problem = std::make_shared<ilqgames_ros::TwoPlayerBoeingDemo>(n);
-  ilqgames_ros::RecedingHorizonPlanner planner(problem);
+  auto problem = std::make_shared<ilqgames_ros::TwoPlayerViconDemo>(n);
+  ilqgames::ilqgames_ros::RecedingHorizonPlanner planner(problem);
 
   if (!planner.Initialize(n)) {
     ROS_ERROR("%s: Failed to initialize planner.",

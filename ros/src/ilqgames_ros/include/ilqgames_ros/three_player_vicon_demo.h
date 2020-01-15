@@ -43,7 +43,7 @@
 #ifndef ILQGAMES_ROS_THREE_PLAYER_VICON_DEMO_H
 #define ILQGAMES_ROS_THREE_PLAYER_VICON_DEMO_H
 
-#include <ilqgames/solver/problem.h>
+#include <ilqgames/solver/top_down_renderable_problem.h>
 #include <ilqgames/utils/types.h>
 
 #include <ros/ros.h>
@@ -52,15 +52,27 @@ namespace ilqgames_ros {
 
 using namespace ilqgames;
 
-class ThreePlayerViconDemo : public Problem {
+class ThreePlayerViconDemo : public TopDownRenderableProblem {
  public:
   ~ThreePlayerViconDemo() {}
   ThreePlayerViconDemo(const ros::NodeHandle& n);
 
   // Accessors.
-  const std::vector<Dimension>& XIdxs() const { return x_idxs_; }
-  const std::vector<Dimension>& YIdxs() const { return y_idxs_; }
-  const std::vector<Dimension>& HeadingIdxs() const { return heading_idxs_; }
+  std::vector<float> Xs(const VectorXf& x) const {
+    std::vector<float> xs;
+    for (auto xidx : x_idxs_) xs.push_back(x(xidx));
+    return xs;
+  }
+  std::vector<float> Ys(const VectorXf& x) const {
+    std::vector<float> ys;
+    for (auto yidx : y_idxs_) ys.push_back(x(yidx));
+    return ys;
+  }
+  std::vector<float> Thetas(const VectorXf& x) const {
+    std::vector<float> thetas;
+    for (auto idx : heading_idxs_) thetas.push_back(x(idx));
+    return thetas;
+  }
 
  private:
   // Load parameters from the ROS parameter server.

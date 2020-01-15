@@ -199,10 +199,6 @@ void RecedingHorizonPlanner::Plan() {
     //    problem_->SetUpNextRecedingHorizon(x0, t, 0.0);
   }
 
-  // Reset time thresholds for initial/final time costs.
-  const double problem_start_time = problem_->CurrentOperatingPoint().t0;
-  problem_->UpdateTimeBasedCosts(problem_start_time);
-
   // Solve the problem.
   const ros::Time solve_start_time = ros::Time::now();
   const auto log = problem_->Solve(planner_runtime);
