@@ -7,7 +7,7 @@ include(ExternalProject)
 
 externalproject_add(ilqgames
   GIT_REPOSITORY https://github.com/HJReachability/ilqgames
-  GIT_TAG master
+  GIT_TAG mkestrada2/racing
   CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DSHARED_LIBS=ON
   UPDATE_COMMAND ""
 )

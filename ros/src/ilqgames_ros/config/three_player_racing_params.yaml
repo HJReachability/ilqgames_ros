@@ -1,0 +1,92 @@
+planner:
+  goals:
+    p1:
+      x: 3.0
+      y: 3.0
+    p2:
+      x: 3.0
+      y: -3.0
+    p3:
+      x: -3.0
+      y: 0.0
+
+  speed:
+    min: 2.0
+    max: 1.0
+    p1Nom: 15.0
+    p2Nom: 10.0
+    p3Nom: 10.0
+
+  weight:
+    u:
+      accel: 50.0
+      omega: 500000.0
+      jerk: 500.0
+    x:
+      # goal: 10.0
+      goal: 20.0
+      v:
+        max: 1000.0
+        p1NomVCost: 10.0
+        p2NomVCost: 1.0
+        p3NomVCost: 1.0
+        min: 10.0
+
+      lane:
+        center: 25.0
+        boundary: 100.0
+
+      proximity:
+        min: 5.0
+        p1: 100.0
+        p2: 100.0
+        p3: 100.0
+      
+      heading:
+        nom: 150.0
+ 
+  init:
+    p1x: 2.5
+    p1y: -10.0
+    p1v: 10.0
+    p2x: -1.0
+    p2y: -10.0
+    p2v: 2.0
+    p3x: 2.5
+    p3y: 10.0
+    p3v: 2.0
+  
+  control:
+    p1Omega: 0
+    p1Jerk: 1
+    p2Omega: 0
+    p2Jerk: 1
+    p3Omega: 0
+    p3Jerk: 1
+
+  lane:
+    half_width: 2.5
+  
+  track:
+    inner: 15.0
+    outer: 20.0
+    side: 25.0
+    Arcpts: 5
+  car:
+    axle: 4.0
+  
+  frames:
+    fixed: "fixed_frame"
+  
+  viz:
+    traj: "moving_frame"
+
+  topic:
+    state:
+      names: ["P1","P2","P3"] 
+      inputs: "/new_inputs"
+      control: "/new_control"
+   
+  replanning_interval: .1
+  control_interval: .01
+  sim_interval:  .005

@@ -1,0 +1,26 @@
+<launch>
+  <!-- Config. -->
+  <rosparam file="$(find ilqgames_ros)/config/three_player_racing_params.yaml" command="load" />
+
+  <!-- Planner node. -->
+  <node name="ilqgame_planner"
+        pkg="ilqgames_ros"
+        type="three_player_racing_demo"
+        output="screen"
+        required="true" />
+
+        <!-- Sim Node. -->
+  <node name="ilqgame_sim"
+        pkg="ilqgames_ros"
+        type="RacingInput"
+        output="screen"
+        required="true" />
+
+    <!-- Control Node. -->
+  <node name="ilqgame_controller"
+        pkg="ilqgames_ros"
+        type="SixDCarSim"
+        output="screen"
+        required="true" />
+
+</launch>

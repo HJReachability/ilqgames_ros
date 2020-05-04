@@ -34,3 +34,15 @@ planner:
 
   lane:
     half_width: 30.0
+  
+  frames:
+    fixed: "fixed_frame"
+  
+  viz:
+    traj: "moving_frame"
+
+  topic:
+    state:
+      names: ["P1","P2"] 
+
+  replanning_interval: 1.0

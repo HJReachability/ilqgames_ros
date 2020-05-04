@@ -42,15 +42,18 @@
 
 #include <ilqgames/dynamics/single_player_dubins_car.h>
 #include <ilqgames/dynamics/single_player_unicycle_4d.h>
+#include <ilqgames/dynamics/single_player_car_6d.h>
 #include <ilqgames/solver/problem.h>
 
 #include <ilqgames_msgs/State.h>
+#include <ilqgames_msgs/ThreePlayerRacingControl.h>
 #include <ilqgames_ros/receding_horizon_planner.h>
 
 #include <geometry_msgs/Point.h>
 #include <ros/ros.h>
 #include <visualization_msgs/Marker.h>
 
+#include <Eigen/Core>
 #include <glog/logging.h>
 #include <memory>
 #include <vector>
@@ -88,18 +91,15 @@ bool RecedingHorizonPlanner::Initialize(const ros::NodeHandle& n) {
 
 bool RecedingHorizonPlanner::LoadParameters(const ros::NodeHandle& n) {
   ros::NodeHandle nl(n);
-
   // Frames.
-  if (!nl.getParam("frames/fixed", fixed_frame_)) return false;
-
-  // Topics.
-  if (!nl.getParam("viz/traj", traj_viz_topic_)) return false;
-  if (!nl.getParam("topic/state/names", state_topics_)) return false;
+  if (!nl.getParam("/planner/frames/fixed", fixed_frame_)) return false;
+  // Topics.  
+  if (!nl.getParam("/planner/viz/traj", traj_viz_topic_)) return false;
+  if (!nl.getParam("/planner/topic/state/names", state_topics_)) return false;
+  if (!nl.getParam("/planner/topic/state/control", Control_topic_)) return false;
   CHECK_EQ(state_topics_.size(), problem_->Solver().Dynamics().NumPlayers());
-
   // Timer interval.
-  if (!nl.getParam("replanning_interval", replanning_interval_)) return false;
-
+  if (!nl.getParam("/planner/replanning_interval", replanning_interval_)) return false;
   return true;
 }
 
@@ -109,6 +109,10 @@ bool RecedingHorizonPlanner::RegisterCallbacks(const ros::NodeHandle& n) {
   // Publishers.
   traj_viz_pub_ = nl.advertise<visualization_msgs::Marker>(
       traj_viz_topic_.c_str(), 1, false);
+
+  //publish new control parameters to the input calculator
+  control_pub_ = nl.advertise<ilqgames_msgs::ThreePlayerRacingControl>(
+      Control_topic_.c_str(), 1, false);
 
   // Subscribers.
   for (size_t ii = 0; ii < state_topics_.size(); ii++) {
@@ -133,6 +137,7 @@ bool RecedingHorizonPlanner::RegisterCallbacks(const ros::NodeHandle& n) {
 }
 
 void RecedingHorizonPlanner::TimerCallback(const ros::TimerEvent& e) {
+  std::cout<<"I got called timer"<<std::endl;
   if (!initialized_) {
     ROS_WARN_THROTTLE(1.0, "%s: Not initialized. Ignoring timer callback.",
                       name_.c_str());
@@ -150,6 +155,7 @@ void RecedingHorizonPlanner::TimerCallback(const ros::TimerEvent& e) {
 
 void RecedingHorizonPlanner::StateCallback(
     const ilqgames_msgs::State::ConstPtr& msg, size_t idx) {
+      std::cout<<"I got called state"<<std::endl;
   auto& x = current_states_[idx];
   CHECK_EQ(x.size(), msg->x.size());
 
@@ -173,6 +179,7 @@ bool RecedingHorizonPlanner::ReceivedAllStateUpdates() const {
 }
 
 void RecedingHorizonPlanner::Plan() {
+  std::cout<<"I got called plan"<<std::endl;
   const double t = ros::Time::now().toSec();
 
   // Parse state information into big vector.
@@ -219,7 +226,13 @@ void RecedingHorizonPlanner::Plan() {
   Visualize();
 }
 
-void RecedingHorizonPlanner::Visualize() const {
+void RecedingHorizonPlanner::Visualize() {
+
+   const ConcatenatedDynamicalSystem& dynamics =
+      *static_cast<const ConcatenatedDynamicalSystem*>(
+          &problem_->Solver().Dynamics());
+
+  std::cout<<"I got called vis"<<std::endl;
   // Exit early if we don't have any subscribers.
   if (traj_viz_pub_.getNumSubscribers() == 0) {
     ROS_INFO("%s: No subscribers, so skipping visualization.", name_.c_str());
@@ -229,10 +242,13 @@ void RecedingHorizonPlanner::Visualize() const {
   // Extract current operating point.
   CHECK(solution_splicer_.get());
   const auto& traj = solution_splicer_->CurrentOperatingPoint();
+  const auto& strat = solution_splicer_->CurrentStrategies();
 
   // Vizualize everybody's trajectory.
   std::vector<visualization_msgs::Marker> spheres(state_topics_.size());
   std::vector<visualization_msgs::Marker> lines(state_topics_.size());
+  ilqgames_msgs::ThreePlayerRacingControl Control_msg;
+
   const auto pub_time = ros::Time::now();
   for (size_t ii = 0; ii < spheres.size(); ii++) {
     auto& s = spheres[ii];
@@ -272,6 +288,18 @@ void RecedingHorizonPlanner::Visualize() const {
     const std::vector<float> xs = problem_->Xs(traj.xs[kk]);
     const std::vector<float> ys = problem_->Ys(traj.xs[kk]);
 
+  //ii index players, kk index time
+    for (size_t ii = 0; ii < state_topics_.size(); ii++) {
+      P_[ii] = strat[ii].Ps[0];
+      alpha_[ii] = strat[ii].alphas[0];
+    }
+
+    //load ref variables for control message
+      x_ref=traj.xs[0];
+      u_refP1=traj.us[0][0];
+      u_refP2=traj.us[0][1];
+      u_refP3=traj.us[0][2];
+
     CHECK_EQ(xs.size(), spheres.size());
     for (size_t ii = 0; ii < spheres.size(); ii++) {
       geometry_msgs::Point p;
@@ -284,11 +312,44 @@ void RecedingHorizonPlanner::Visualize() const {
     }
   }
 
+   //load control message
+   //load P matrices
+    const Eigen::Map<MatrixXf> P1(P_[0].data(),dynamics.XDim()*dynamics.TotalUDim(),1);
+    for (size_t jj = 0; jj < dynamics.XDim()*dynamics.TotalUDim(); jj++){
+    Control_msg.PP1.push_back(P1(jj,0));
+    }
+    const Eigen::Map<MatrixXf> P2(P_[1].data(),dynamics.XDim()*dynamics.TotalUDim(),1);
+    for (size_t jj = 0; jj < dynamics.XDim()*dynamics.TotalUDim(); jj++){
+    Control_msg.PP2.push_back(P2(jj,0));
+    }
+    const Eigen::Map<MatrixXf> P3(P_[2].data(),dynamics.XDim()*dynamics.TotalUDim(),1);
+    for (size_t jj = 0; jj < dynamics.XDim()*dynamics.TotalUDim(); jj++){
+    Control_msg.PP3.push_back(P3(jj,0));
+    }
+    //load alphas and x_ref
+    for (size_t jj = 0; jj < dynamics.XDim(); jj++){
+    Control_msg.alphaP1.push_back(alpha_[0](jj));
+    Control_msg.alphaP2.push_back(alpha_[1](jj));
+    Control_msg.alphaP3.push_back(alpha_[2](jj));
+    Control_msg.x_ref.push_back(x_ref(jj));
+    }
+    //load u_ref values
+    for (size_t jj = 0; jj < dynamics.UDim(0); jj++){
+      Control_msg.u_refP1.push_back(u_refP1(jj));
+    }
+    for (size_t jj = 0; jj < dynamics.UDim(1); jj++){
+      Control_msg.u_refP2.push_back(u_refP2(jj));
+    }
+    for (size_t jj = 0; jj < dynamics.UDim(2); jj++){
+      Control_msg.u_refP3.push_back(u_refP3(jj));
+    }
+
   // Publish!
   for (size_t ii = 0; ii < spheres.size(); ii++) {
     traj_viz_pub_.publish(spheres[ii]);
     traj_viz_pub_.publish(lines[ii]);
   }
+  control_pub_.publish(Control_msg);
 }
 
 }  // namespace ilqgames_ros

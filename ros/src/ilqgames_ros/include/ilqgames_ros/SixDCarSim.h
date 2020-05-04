@@ -36,107 +36,82 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-// Receding horizon planner, used for all experiments.
+// Compute a lane center entering and leaving a roundabout.
 //
 ///////////////////////////////////////////////////////////////////////////////
-
-#ifndef ILQGAMES_ROS_RECEDING_HORIZON_PLANNER_H
-#define ILQGAMES_ROS_RECEDING_HORIZON_PLANNER_H
+//#ifdef?
+//#define?
 
 #include <ilqgames/dynamics/concatenated_dynamical_system.h>
-#include <ilqgames/solver/solution_splicer.h>
 #include <ilqgames/solver/top_down_renderable_problem.h>
 #include <ilqgames/utils/types.h>
 
+#include <ros/ros.h>
+#include <ilqgames_msgs/ThreePlayerRacingInput.h>
 #include <ilqgames_msgs/State.h>
 
-#include <ros/ros.h>
-#include <visualization_msgs/Marker.h>
-#include <ilqgames_msgs/ThreePlayerRacingControl.h>
-
 #include <glog/logging.h>
-#include <memory>
 #include <vector>
+#include <memory>
 
 namespace ilqgames {
 namespace ilqgames_ros {
 
-class RecedingHorizonPlanner {
- public:
-  ~RecedingHorizonPlanner() {}
-  RecedingHorizonPlanner(
+class SixDCarSim {
+  public:
+    //destructor
+    ~SixDCarSim() {}
+    //constructor
+    SixDCarSim(
       const std::shared_ptr<TopDownRenderableProblem>& problem)
-      : problem_(problem), initialized_(false), is_first_timer_callback_(true) {
+      : problem_(problem), initialized_(false), t_(0), t_last_(0) {
     CHECK_NOTNULL(problem.get());
-  }
+    }
+    //initialize
+    bool Initialize(const ros::NodeHandle& n);
+   
+   private:
+    //load necessary parameters from rosparam server
+    bool LoadParameters(const ros::NodeHandle& n);
+    //setup ros subscribers/publishers
+    bool RegisterCallbacks(const ros::NodeHandle& n);
+    //triggered when timer is iterated every replanning_interval_;
+    void TimerCallback(const ros::TimerEvent& e);
+    //accepts messages of inputs from the input calculation node
+    void InputCallback(const ilqgames_msgs::ThreePlayerRacingInput::ConstPtr& msg);
 
-  // Initialize this class with all parameters and callbacks.
-  bool Initialize(const ros::NodeHandle& n);
+    //variable to store the associated racing problem
+    std::shared_ptr<TopDownRenderableProblem> problem_;
 
- private:
-  // Load parameters and register callbacks.
-  bool LoadParameters(const ros::NodeHandle& n);
-  bool RegisterCallbacks(const ros::NodeHandle& n);
+    //handle trigers to timercallback method every replanning_interval_ sec.
+    ros::Timer timer_;
+    float sim_interval_;
+    
+    //node name for 
+    std::string name_;
 
-  // Replan on a timer.
-  void TimerCallback(const ros::TimerEvent& e);
+    //vars relating to publisher/sub topics
+    std::vector<std::string> state_topics_;
+    std::string input_topic_;
 
-  // Callback for processing the given player's state msg.
-  void StateCallback(const ilqgames_msgs::State::ConstPtr& msg, size_t idx);
+    bool initialized_;
 
-  // Check to see if we've received state updates for all players.
-  bool ReceivedAllStateUpdates() const;
+    //variables related to sim params
+    //float kInterAxleLength;
 
-  // Plan trajectory.
-  void Plan();
+    //current and last
+    double t_;
+    double t_last_;
 
-  // Visualize the current operating point.
-  void Visualize();
+    //list of inputs for n agents
+    std::vector<VectorXf> u_;
+    //overall system state
+    VectorXf x_;
 
-  // Planning problem.
-  std::shared_ptr<TopDownRenderableProblem> problem_;
-
-  // Solution splicer to keep track of solution over multiple receding horizon
-  // solver invocations.
-  std::unique_ptr<SolutionSplicer> solution_splicer_;
-
-  // Set a recurring timer for a discrete-time controller.
-  ros::Timer timer_;
-  float replanning_interval_;
-
-  // Fixed frame id.
-  std::string fixed_frame_;
-
-  // Publishers/subscribers and related topics.
-  ros::Publisher traj_viz_pub_;
-  std::vector<ros::Subscriber> state_subs_;
-
-  std::string Control_topic_;
-  std::string traj_viz_topic_;
-  std::vector<std::string> state_topics_;
-
-  // List of most recent states for each system.
-  std::vector<VectorXf> current_states_;
-
-  // Naming and initialization.
-  std::string name_;
-  bool initialized_;
-  bool is_first_timer_callback_;
-
-  std::vector<MatrixXf> P_;
-  std::vector<VectorXf> alpha_;
-  std::vector<VectorXf> u_hat_;
-  VectorXf x_hat_;
-  VectorXf x_;
-  VectorXf x_ref;
-  VectorXf u_refP1;
-  VectorXf u_refP2;
-  VectorXf u_refP3;
-
-ros::Publisher control_pub_;
+    //list of publishers for system states
+    std::vector<ros::Publisher> state_publishers_;
+    ros::Subscriber Input_sub_;
 };
 
-}  // namespace ilqgames_ros
+}  // namespace ilqgames_ros 
 }  // namespace ilqgames
-
-#endif

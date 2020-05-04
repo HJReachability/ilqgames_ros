@@ -205,28 +205,28 @@ TwoPlayerViconDemo::TwoPlayerViconDemo(const ros::NodeHandle& n)
 void TwoPlayerViconDemo::LoadParameters(const ros::NodeHandle& n) {
   ros::NodeHandle nl(n);
 
-  CHECK(nl.getParam("goals/p1/x", kP1GoalX));
-  CHECK(nl.getParam("goals/p1/y", kP1GoalY));
-  CHECK(nl.getParam("goals/p2/x", kP2GoalX));
-  CHECK(nl.getParam("goals/p2/y", kP2GoalY));
+  CHECK(nl.getParam("/planner/goals/p1/x", kP1GoalX));
+  CHECK(nl.getParam("/planner/goals/p1/y", kP1GoalY));
+  CHECK(nl.getParam("/planner/goals/p2/x", kP2GoalX));
+  CHECK(nl.getParam("/planner/goals/p2/y", kP2GoalY));
 
-  CHECK(nl.getParam("speed/min", kMinV));
-  CHECK(nl.getParam("speed/max", kMaxV));
-  CHECK(nl.getParam("speed/nominal", kNominalV));
-  CHECK(nl.getParam("speed/dubins", kDubinsV));
+  CHECK(nl.getParam("/planner/speed/min", kMinV));
+  CHECK(nl.getParam("/planner/speed/max", kMaxV));
+  CHECK(nl.getParam("/planner/speed/nominal", kNominalV));
+  CHECK(nl.getParam("/planner/speed/dubins", kDubinsV));
 
-  CHECK(nl.getParam("weight/u/accel", kACostWeight));
-  CHECK(nl.getParam("weight/u/omega", kOmegaCostWeight));
-  CHECK(nl.getParam("weight/x/v/max", kMaxVCostWeight));
-  CHECK(nl.getParam("weight/x/v/nominal", kNominalVCostWeight));
-  CHECK(nl.getParam("weight/x/goal", kGoalCostWeight));
-  CHECK(nl.getParam("weight/x/lane/center", kLaneCostWeight));
-  CHECK(nl.getParam("weight/x/lane/boundary", kLaneBoundaryCostWeight));
-  CHECK(nl.getParam("weight/x/proximity/p1", kP1ProximityCostWeight));
-  CHECK(nl.getParam("weight/x/proximity/p2", kP2ProximityCostWeight));
+  CHECK(nl.getParam("/planner/weight/u/accel", kACostWeight));
+  CHECK(nl.getParam("/planner/weight/u/omega", kOmegaCostWeight));
+  CHECK(nl.getParam("/planner/weight/x/v/max", kMaxVCostWeight));
+  CHECK(nl.getParam("/planner/weight/x/v/nominal", kNominalVCostWeight));
+  CHECK(nl.getParam("/planner/weight/x/goal", kGoalCostWeight));
+  CHECK(nl.getParam("/planner/weight/x/lane/center", kLaneCostWeight));
+  CHECK(nl.getParam("/planner/weight/x/lane/boundary", kLaneBoundaryCostWeight));
+  CHECK(nl.getParam("/planner/weight/x/proximity/p1", kP1ProximityCostWeight));
+  CHECK(nl.getParam("/planner/weight/x/proximity/p2", kP2ProximityCostWeight));
 
-  CHECK(nl.getParam("proximity/min", kMinProximity));
-  CHECK(nl.getParam("lane/half_width", kLaneHalfWidth));
+  CHECK(nl.getParam("/planner/proximity/min", kMinProximity));
+  CHECK(nl.getParam("/planner/lane/half_width", kLaneHalfWidth));
 }
 
 }  // namespace ilqgames_ros
