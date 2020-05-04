@@ -181,18 +181,9 @@ void RacingInput::TimerCallback(const ros::TimerEvent& e) {
                       name_.c_str());
     return;
   }
-  if (!ReceivedAllMsgs()) {
-    ROS_WARN_THROTTLE(
-        1.0, "%s: Haven't received all messages. Ignoring timer callback.",
-        name_.c_str());
-    return;
-  }
-  //
-  const double t_ = ros::Time::now().toSec();
-
-  size_t cumulative_xdim = 0;
 
   // construct x_ with the latest x states.
+  size_t cumulative_xdim = 0;
   for (size_t ii = 0; ii < u_ref_.size(); ii++) {
     for (size_t jj = 0; jj < x_received_[ii].size(); jj++) {
       x_(jj + cumulative_xdim) = x_received_[ii](jj);
@@ -201,6 +192,15 @@ void RacingInput::TimerCallback(const ros::TimerEvent& e) {
   }
 
   delta_x_ = x_ - x_ref_;
+
+  if (!ReceivedAllMsgs()) {
+    ROS_WARN_THROTTLE(
+        1.0, "%s: Haven't received all messages. Ignoring timer callback.",
+        name_.c_str());
+    return;
+  }
+
+  const double t_ = ros::Time::now().toSec();
 
   // calculate new control inputs
   // do these dims work out?
@@ -239,6 +239,7 @@ void RacingInput::ControlCallback(
   // finish input callback
   for (size_t jj = 0; jj < x_.size(); jj++) {
     x_ref_(jj) = msg->x_ref[jj];
+    CHECK(!std::isnan(msg->x_ref[jj]));
   }
 
   // load contents of alpha message
@@ -282,11 +283,9 @@ void RacingInput::ControlCallback(
   // reshape P_ matrices to be of proper
   // might be some type conversion issues here
   const Eigen::Map<MatrixXf> P1(P_[0].data(), u_ref_[0].size(), x_.size());
-  std::cout << "u: wutwutwut" << std::endl;
   const Eigen::Map<MatrixXf> P2(P_[1].data(), u_ref_[1].size(), x_.size());
-  std::cout << "u: wutwutwut" << std::endl;
   const Eigen::Map<MatrixXf> P3(P_[2].data(), u_ref_[2].size(), x_.size());
-  std::cout << "u: wutwutwut" << std::endl;
+
   P_mat_[0] = P1;
   P_mat_[1] = P2;
   P_mat_[2] = P3;
@@ -314,12 +313,19 @@ void RacingInput::P3StateCallback(const ilqgames_msgs::State::ConstPtr& msg) {
 }
 
 bool RacingInput::ReceivedAllMsgs() const {
+  std::cout << x_(0) << std::endl;
+  std::cout << x_ref_(0) << std::endl;
+
   if (x_.hasNaN()) return false;
   if (x_ref_.hasNaN()) return false;
 
+  std::cout << u_ref_[0] << std::endl;
+  std::cout << alpha_[0] << std::endl;
+  std::cout << P_mat_[0] << std::endl;
+
   for (size_t jj = 0; jj < u_.size(); jj++) {
-    if (u_[jj].hasNaN()) return false;
-    if (x_received_[jj].hasNaN()) return false;
+    //    if (u_[jj].hasNaN()) return false;
+    //    if (x_received_[jj].hasNaN()) return false;
     if (u_ref_[jj].hasNaN()) return false;
     if (alpha_[jj].hasNaN()) return false;
     if (P_mat_[jj].hasNaN()) return false;
