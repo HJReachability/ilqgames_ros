@@ -99,7 +99,7 @@ bool RacingInput::Initialize(const ros::NodeHandle& n) {
         dynamics->UDim(ii), std::numeric_limits<float>::quiet_NaN()));
 
     alpha_.push_back(VectorXf::Constant(
-        dynamics->XDim(), std::numeric_limits<float>::quiet_NaN()));
+        dynamics->UDim(ii), std::numeric_limits<float>::quiet_NaN()));
 
     P_.push_back(VectorXf::Constant(dynamics->XDim() * dynamics->TotalUDim(),
                                     std::numeric_limits<float>::quiet_NaN()));
@@ -116,6 +116,9 @@ bool RacingInput::Initialize(const ros::NodeHandle& n) {
                               std::numeric_limits<float>::quiet_NaN());
 
   std::cout << "test4 controller" << std::endl;
+
+  // Initialize P_mat_.
+  P_mat_.resize(dynamics->NumPlayers());
 
   // signal completion of intialization
   initialized_ = true;
@@ -205,7 +208,6 @@ void RacingInput::TimerCallback(const ros::TimerEvent& e) {
   u_[1] = u_ref_[1] - P_mat_[1] * delta_x_ - alpha_[1];
   u_[2] = u_ref_[2] - P_mat_[2] * delta_x_ - alpha_[2];
 
-
   // keep track of proper indeces
   // load inputs to respective elements of message
   ilqgames_msgs::ThreePlayerRacingInput Input_msg;
@@ -250,6 +252,8 @@ void RacingInput::ControlCallback(
     alpha_[2](jj) = msg->alphaP3[jj];
   }
 
+  std::cout << "u: wut" << std::endl;
+
   // load u_ref values into local vars
   for (size_t jj = 0; jj < u_ref_[0].size(); jj++) {
     u_ref_[0](jj) = msg->u_refP1[jj];
@@ -261,22 +265,28 @@ void RacingInput::ControlCallback(
     u_ref_[2](jj) = msg->u_refP3[jj];
   }
 
-  for (size_t jj = 0; jj < P_[0].size(); jj++) {
+  std::cout << "u: wutwut" << std::endl;
+
+  for (size_t jj = 0; jj < P_[0].rows(); jj++) {
     P_[0](jj, 0) = msg->PP1[jj];
   }
-  for (size_t jj = 0; jj < P_[0].size(); jj++) {
-    P_[0](jj, 0) = msg->PP1[jj];
+  for (size_t jj = 0; jj < P_[1].rows(); jj++) {
+    P_[1](jj, 0) = msg->PP2[jj];
   }
-  for (size_t jj = 0; jj < P_[0].size(); jj++) {
-    P_[0](jj, 0) = msg->PP1[jj];
+  for (size_t jj = 0; jj < P_[2].rows(); jj++) {
+    P_[2](jj, 0) = msg->PP3[jj];
   }
+
+  std::cout << "u: wutwutwut" << std::endl;
 
   // reshape P_ matrices to be of proper
   // might be some type conversion issues here
-  const Eigen::Map<MatrixXf> P1(P_[0].data(), x_.size(), u_ref_[0].size());
-  const Eigen::Map<MatrixXf> P2(P_[1].data(), x_.size(), u_ref_[1].size());
-  const Eigen::Map<MatrixXf> P3(P_[2].data(), x_.size(), u_ref_[2].size());
-
+  const Eigen::Map<MatrixXf> P1(P_[0].data(), u_ref_[0].size(), x_.size());
+  std::cout << "u: wutwutwut" << std::endl;
+  const Eigen::Map<MatrixXf> P2(P_[1].data(), u_ref_[1].size(), x_.size());
+  std::cout << "u: wutwutwut" << std::endl;
+  const Eigen::Map<MatrixXf> P3(P_[2].data(), u_ref_[2].size(), x_.size());
+  std::cout << "u: wutwutwut" << std::endl;
   P_mat_[0] = P1;
   P_mat_[1] = P2;
   P_mat_[2] = P3;

@@ -90,8 +90,8 @@ class RecedingHorizonPlanner {
   // Plan trajectory.
   void Plan();
 
-  // Visualize the current operating point.
-  void Visualize();
+  // Visualize the current operating point and publish feedback law.
+  void Publish();
 
   // Planning problem.
   std::shared_ptr<TopDownRenderableProblem> problem_;
@@ -125,8 +125,6 @@ class RecedingHorizonPlanner {
 
   std::vector<MatrixXf> P_;
   std::vector<VectorXf> alpha_;
-  std::vector<VectorXf> u_hat_;
-  VectorXf x_hat_;
   VectorXf x_;
   VectorXf x_ref;
   VectorXf u_refP1;
