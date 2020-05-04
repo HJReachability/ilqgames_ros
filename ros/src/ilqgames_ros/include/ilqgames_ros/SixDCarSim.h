@@ -69,7 +69,7 @@ class SixDCarSim {
     }
     //initialize
     bool Initialize(const ros::NodeHandle& n);
-   
+
    private:
     //load necessary parameters from rosparam server
     bool LoadParameters(const ros::NodeHandle& n);
@@ -86,8 +86,8 @@ class SixDCarSim {
     //handle trigers to timercallback method every replanning_interval_ sec.
     ros::Timer timer_;
     float sim_interval_;
-    
-    //node name for 
+
+    //node name for
     std::string name_;
 
     //vars relating to publisher/sub topics
@@ -113,5 +113,5 @@ class SixDCarSim {
     ros::Subscriber Input_sub_;
 };
 
-}  // namespace ilqgames_ros 
+}  // namespace ilqgames_ros
 }  // namespace ilqgames

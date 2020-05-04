@@ -93,7 +93,7 @@ bool RecedingHorizonPlanner::LoadParameters(const ros::NodeHandle& n) {
   ros::NodeHandle nl(n);
   // Frames.
   if (!nl.getParam("/planner/frames/fixed", fixed_frame_)) return false;
-  // Topics.  
+  // Topics.
   if (!nl.getParam("/planner/viz/traj", traj_viz_topic_)) return false;
   if (!nl.getParam("/planner/topic/state/names", state_topics_)) return false;
   if (!nl.getParam("/planner/topic/state/control", Control_topic_)) return false;
@@ -155,7 +155,6 @@ void RecedingHorizonPlanner::TimerCallback(const ros::TimerEvent& e) {
 
 void RecedingHorizonPlanner::StateCallback(
     const ilqgames_msgs::State::ConstPtr& msg, size_t idx) {
-      std::cout<<"I got called state"<<std::endl;
   auto& x = current_states_[idx];
   CHECK_EQ(x.size(), msg->x.size());
 
@@ -198,7 +197,7 @@ void RecedingHorizonPlanner::Plan() {
     problem_->ResetInitialTime(t);
     problem_->ResetInitialState(x0);
     warm_start_dt = ilqgames::constants::kSmallNumber;
-    planner_runtime = std::numeric_limits<double>::infinity();
+    //    planner_runtime = std::numeric_limits<double>::infinity();
     is_first_timer_callback_ = false;
   } else {
     // Set up next receding horizon problem and solve.

@@ -53,7 +53,6 @@
 #include <ilqgames/dynamics/single_player_car_6d.h>
 #include <ilqgames/dynamics/single_player_dubins_car.h>
 #include <ilqgames/dynamics/single_player_unicycle_4d.h>
-#include <ilqgames/examples/racing_lane_center.h>
 #include <ilqgames/geometry/polyline2.h>
 #include <ilqgames/solver/ilq_solver.h>
 #include <ilqgames/solver/problem.h>
@@ -62,6 +61,7 @@
 #include <ilqgames/utils/types.h>
 #include <ilqgames_ros/three_player_vicon_demo.h>
 #include <ilqgames_ros/three_player_racing_demo.h>
+#include <ilqgames_ros/racing_lane_center.h>
 
 #include <glog/logging.h>
 #include <math.h>
@@ -136,8 +136,8 @@ static constexpr float kP3NominalVCostWeight = 1.0;
 
 static constexpr float kMinVCostWeight = 10.0;
 
-static constexpr float kLaneCostWeight = 25.0; 
-static constexpr float kLaneBoundaryCostWeight = 100.0; 
+static constexpr float kLaneCostWeight = 25.0;
+static constexpr float kLaneBoundaryCostWeight = 100.0;
 
 static constexpr float kMinProximity = 5.0;
 static constexpr float kP1ProximityCostWeight = 100.0;
@@ -168,7 +168,7 @@ static constexpr float kP2InitialY = -10.0;  // m
 static constexpr float kP3InitialX = 2.5;   // m
 static constexpr float kP3InitialY = 10.0;  // m
 
-//set goal points 
+//set goal points
 
 //static constexpr float kP1GoalX = kP1InitialX - 100 ;   // m
 //static constexpr float kP1GoalY = 18.0;  // m
@@ -214,7 +214,7 @@ ThreePlayerRacingDemo::ThreePlayerRacingDemo(const ros::NodeHandle& n)
        {std::make_shared<SinglePlayerCar6D>(kInterAxleLength),
         std::make_shared<SinglePlayerCar6D>(kInterAxleLength),
         std::make_shared<SinglePlayerCar6D>(kInterAxleLength)},
-        kTimeStep));  
+        kTimeStep));
   /*
   // Create dynamics.
   const std::shared_ptr<const ConcatenatedDynamicalSystem> dynamics(
@@ -225,8 +225,19 @@ ThreePlayerRacingDemo::ThreePlayerRacingDemo(const ros::NodeHandle& n)
   */
   // Set up initial state.
   // NOTE: this will get overwritten before the solver is actually called.
-  x0_ = VectorXf::Constant(dynamics->XDim(),
-                           std::numeric_limits<float>::quiet_NaN());
+  x0_ = VectorXf::Zero(dynamics->XDim());
+  x0_(kP1XIdx) = kP1InitialX;
+  x0_(kP1YIdx) = kP1InitialY;
+  x0_(kP1HeadingIdx) = kP1InitialHeading;
+  x0_(kP1VIdx) = kP1InitialSpeed;
+  x0_(kP2XIdx) = kP2InitialX;
+  x0_(kP2YIdx) = kP2InitialY;
+  x0_(kP2HeadingIdx) = kP2InitialHeading;
+  x0_(kP2VIdx) = kP2InitialSpeed;
+  x0_(kP3XIdx) = kP3InitialX;
+  x0_(kP3YIdx) = kP3InitialY;
+  x0_(kP3HeadingIdx) = kP3InitialHeading;
+  x0_(kP3VIdx) = kP3InitialSpeed;
 
   // Set up initial strategies and operating point.
   //how does this differ from not ROS version?
@@ -465,7 +476,7 @@ void ThreePlayerRacingDemo::LoadParameters(const ros::NodeHandle& n) {
   CHECK(nl.getParam("/planner/weight/x/v/p1NomVCost", kP1NominalVCostWeight));
   CHECK(nl.getParam("/planner/weight/x/v/p2NomVCost", kP2NominalVCostWeight));
   CHECK(nl.getParam("/planner/weight/x/v/p3NomVCost", kP3NominalVCostWeight));
- 
+
  //cost weight of goal
   CHECK(nl.getParam("/planner/weight/x/goal", kGoalCostWeight));
 
@@ -479,26 +490,26 @@ void ThreePlayerRacingDemo::LoadParameters(const ros::NodeHandle& n) {
   CHECK(nl.getParam("/planner/weight/x/proximity/p2", kP2ProximityCostWeight));
   CHECK(nl.getParam("/planner/weight/x/proximity/p3", kP3ProximityCostWeight));
   CHECK(nl.getParam("/planner/weight/x/proximity/min", kMinProximity));
-  
+
   //player 1 initial conditions
   CHECK(nl.getParam("/planner/init/p1x", kP1InitialX));
   CHECK(nl.getParam("/planner/init/p1y", kP1InitialY));
   CHECK(nl.getParam("/planner/init/p1v", kP1InitialSpeed));
-  
+
   //player 2 initial conditions
   CHECK(nl.getParam("/planner/init/p2x", kP2InitialX));
   CHECK(nl.getParam("/planner/init/p2y", kP2InitialY));
   CHECK(nl.getParam("/planner/init/p2v", kP2InitialSpeed));
-  
+
   //player 3 initial conditions
   CHECK(nl.getParam("/planner/init/p3x", kP3InitialX));
   CHECK(nl.getParam("/planner/init/p3y", kP3InitialY));
   CHECK(nl.getParam("/planner/init/p3v", kP3InitialSpeed));
-  
+
   //player 1 control conditions
   CHECK(nl.getParam("/planner/control/p1Omega", kP1OmegaIdx));
   CHECK(nl.getParam("/planner/control/p1Jerk", kP1JerkIdx));
-  
+
   //player 2 control conditions
   CHECK(nl.getParam("/planner/control/p2Omega", kP2OmegaIdx));
   CHECK(nl.getParam("/planner/control/p2Jerk", kP2JerkIdx));
@@ -506,7 +517,7 @@ void ThreePlayerRacingDemo::LoadParameters(const ros::NodeHandle& n) {
   //player 3 control conditions
   CHECK(nl.getParam("/planner/control/p3Omega", kP3OmegaIdx));
   CHECK(nl.getParam("/planner/control/p3Jerk", kP3JerkIdx));
-  
+
   //add track conditions
   CHECK(nl.getParam("/planner/track/inner", turn_rad_inner));
   CHECK(nl.getParam("/planner/track/outer", turn_rad_outer));

@@ -46,91 +46,91 @@
 #include <ilqgames/solver/top_down_renderable_problem.h>
 #include <ilqgames/utils/types.h>
 
-#include <ros/ros.h>
-#include <ilqgames_msgs/ThreePlayerRacingInput.h>
 #include <ilqgames_msgs/State.h>
 #include <ilqgames_msgs/ThreePlayerRacingControl.h>
+#include <ilqgames_msgs/ThreePlayerRacingInput.h>
+#include <ros/ros.h>
 
 #include <glog/logging.h>
-#include <vector>
 #include <memory>
+#include <vector>
 
 namespace ilqgames {
 namespace ilqgames_ros {
 
 class RacingInput {
-  public:
-    //destructor
-    ~RacingInput() {}
-    //constructor
-    RacingInput(
-      const std::shared_ptr<TopDownRenderableProblem>& problem)
+ public:
+  // destructor
+  ~RacingInput() {}
+  // constructor
+  RacingInput(const std::shared_ptr<TopDownRenderableProblem>& problem)
       : problem_(problem), initialized_(false), t_(0), t_last_(0) {
     CHECK_NOTNULL(problem.get());
-    }
-    //initialize
-    bool Initialize(const ros::NodeHandle& n);
-   
-   private:
-    //load necessary parameters from rosparam server
-    bool LoadParameters(const ros::NodeHandle& n);
-    //setup ros subscribers/publishers
-    bool RegisterCallbacks(const ros::NodeHandle& n);
-    //triggered when timer is iterated every replanning_interval_;
-    void TimerCallback(const ros::TimerEvent& e);
-    //accepts messages of inputs from the input calculation node
-    void ControlCallback(const ilqgames_msgs::ThreePlayerRacingControl::ConstPtr& msg);
-    void P1StateCallback(const ilqgames_msgs::State::ConstPtr& msg);
-    void P2StateCallback(const ilqgames_msgs::State::ConstPtr& msg);
-    void P3StateCallback(const ilqgames_msgs::State::ConstPtr& msg);
-    bool ReceivedAllMsgs() const;
-    //variable to store the associated racing problem
-    std::shared_ptr<TopDownRenderableProblem> problem_;
+  }
+  // initialize
+  bool Initialize(const ros::NodeHandle& n);
 
-    //handle trigers to timercallback method every replanning_interval_ sec.
-    ros::Timer timer_;
-    float control_interval_;
-    
-    //node name for 
-    std::string name_;
+ private:
+  // load necessary parameters from rosparam server
+  bool LoadParameters(const ros::NodeHandle& n);
+  // setup ros subscribers/publishers
+  bool RegisterCallbacks(const ros::NodeHandle& n);
+  // triggered when timer is iterated every replanning_interval_;
+  void TimerCallback(const ros::TimerEvent& e);
+  // accepts messages of inputs from the input calculation node
+  void ControlCallback(
+      const ilqgames_msgs::ThreePlayerRacingControl::ConstPtr& msg);
+  void P1StateCallback(const ilqgames_msgs::State::ConstPtr& msg);
+  void P2StateCallback(const ilqgames_msgs::State::ConstPtr& msg);
+  void P3StateCallback(const ilqgames_msgs::State::ConstPtr& msg);
+  bool ReceivedAllMsgs() const;
+  // variable to store the associated racing problem
+  std::shared_ptr<TopDownRenderableProblem> problem_;
 
-    //vars relating to publisher/sub topics
-    std::vector<std::string> state_topics_;
-    std::string Input_topic_;
-    std::string Control_topic_;
+  // handle trigers to timercallback method every replanning_interval_ sec.
+  ros::Timer timer_;
+  float control_interval_;
 
-    bool initialized_;
+  // node name for
+  std::string name_;
 
-    //variables related to sim params
-    float kInterAxleLength;
-    static constexpr Time kTimeStep = 0.1; 
+  // vars relating to publisher/sub topics
+  std::vector<std::string> state_topics_;
+  std::string Input_topic_;
+  std::string Control_topic_;
 
-    //current and last
-    double t_;
-    double t_last_;
+  bool initialized_;
 
-    //list of inputs for n agents
-    std::vector<VectorXf> u_;
-    std::vector<VectorXf> u_ref_;
+  // variables related to sim params
+  float kInterAxleLength;
+  static constexpr Time kTimeStep = 0.1;
 
-    //controller parameters
-    std::vector<MatrixXf> P_;
-    std::vector<MatrixXf> P_mat_;
-    std::vector<VectorXf> alpha_;
-    
-    //overall system state
-    VectorXf x_;
-    VectorXf x_ref_;
-    VectorXf delta_x_;
+  // current and last
+  double t_;
+  double t_last_;
 
-     //list of individual system states
-    std::vector<VectorXf> x_received_;
-  
-    //list of publishers for system states
-    ros::Publisher Input_pub_;
-    ros::Subscriber Control_sub_;
-    std::vector<ros::Subscriber> state_subs_;
+  // list of inputs for n agents
+  std::vector<VectorXf> u_;
+  std::vector<VectorXf> u_ref_;
+
+  // controller parameters
+  std::vector<MatrixXf> P_;
+  std::vector<MatrixXf> P_mat_;
+  std::vector<VectorXf> alpha_;
+
+  // overall system state
+  VectorXf x_;
+  VectorXf x_ref_;
+  VectorXf delta_x_;
+
+  // list of individual system states
+  std::vector<VectorXf> x_received_;
+
+  // list of publishers for system states
+  ros::Publisher Input_pub_;
+  ros::Subscriber Control_sub_;
+  std::vector<ros::Subscriber> state_subs_;
 };
 
-}  // namespace ilqgames 
+}  // namespace ilqgames
 }  // namespace ilqgames_ros

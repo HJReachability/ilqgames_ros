@@ -9,15 +9,15 @@
         output="screen"
         required="true" />
 
-        <!-- Sim Node. -->
-  <node name="ilqgame_sim"
+        <!-- Control Node. -->
+  <node name="ilqgames_control"
         pkg="ilqgames_ros"
         type="RacingInput"
         output="screen"
         required="true" />
 
-    <!-- Control Node. -->
-  <node name="ilqgame_controller"
+    <!-- Sim Node. -->
+  <node name="ilqgame_sim"
         pkg="ilqgames_ros"
         type="SixDCarSim"
         output="screen"
