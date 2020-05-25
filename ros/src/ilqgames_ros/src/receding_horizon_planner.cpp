@@ -209,7 +209,7 @@ void RecedingHorizonPlanner::Plan() {
   if (!solution_splicer_.get())
     solution_splicer_.reset(new SolutionSplicer(*log));
   else
-    solution_splicer_->Splice(*log, x0, problem_->Solver().Dynamics());
+    solution_splicer_->Splice(*log);
 
   // Overwrite problem with spliced solution.
   problem_->OverwriteSolution(solution_splicer_->CurrentOperatingPoint(),
